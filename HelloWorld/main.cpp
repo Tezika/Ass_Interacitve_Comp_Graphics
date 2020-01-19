@@ -1,22 +1,27 @@
-#include<GL/glut.h>
+#include<GL/freeglut.h>
+#include <iostream>
+#include <math.h>
 
-void display() {
+void Display()
+{
 	glClear( GL_COLOR_BUFFER_BIT );
-	glColor3f( 1.0, 0.0, 0.0 );
-
-	glBegin( GL_POINTS );
-	glVertex2f( 10.0, 10.0 );
-	glVertex2f( 150.0, 80.0 );
-	glVertex2f( 100.0, 20.0 );
-	glVertex2f( 200.0, 100.0 );
-	glEnd();
-	glFlush();
+	glutSwapBuffers();
 }
 
-void myinit() {
+void Idle()
+{
+	float elapsedTime = glutGet( GLUT_ELAPSED_TIME ) / 1000.0;
+	float r = 1 + sinf( elapsedTime ) / 2;
+	float g = 1 + cosf( elapsedTime ) / 2;
+	float b = 1 + cosf( elapsedTime ) / 2;
+	float a = 1 + cosf( elapsedTime ) / 2;
+	glClearColor( r, g, b, a );
+	glutPostRedisplay();
+}
+
+void Init()
+{
 	glClearColor( 1.0, 1.0, 1.0, 1.0 );
-	glColor3f( 1.0, 0.0, 0.0 );
-	glPointSize( 5.0 );
 	glMatrixMode( GL_PROJECTION );
 	glLoadIdentity();
 	gluOrtho2D( 0.0, 499.0, 0.0, 499.0 );
@@ -27,9 +32,9 @@ void main( int argc, char** argv ) {
 	glutInitDisplayMode( GLUT_SINGLE | GLUT_RGB );
 	glutInitWindowSize( 500, 500 );
 	glutInitWindowPosition( 0, 0 );
-	glutCreateWindow( "Points" );
-	glutDisplayFunc( display );
-
-	myinit();
+	glutCreateWindow( "HelloWorld" );
+	glutDisplayFunc( Display );
+	glutIdleFunc( Idle );
+	Init();
 	glutMainLoop();
 }
