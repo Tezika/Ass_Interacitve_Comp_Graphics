@@ -118,7 +118,7 @@
       <AdditionalDependencies>OpenGL32.Lib;freeglutd.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglutd.dll" "$(ProjectDir)$(PlatformTarget)\$(Configuration)\"</Command>
+      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglutd.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to output dir.</Message>
@@ -141,7 +141,7 @@
       <AdditionalDependencies>OpenGL32.Lib;freeglutd.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglutd.dll" "$(ProjectDir)$(PlatformTarget)\$(Configuration)\"</Command>
+      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglutd.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to output dir.</Message>
@@ -168,7 +168,7 @@
       <AdditionalDependencies>OpenGL32.Lib;freeglut.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglut.dll" "$(ProjectDir)$(PlatformTarget)\$(Configuration)\"</Command>
+      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglut.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to the output dir.</Message>
@@ -195,7 +195,7 @@
       <AdditionalDependencies>OpenGL32.Lib;freeglut.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglut.dll" "$(ProjectDir)$(PlatformTarget)\$(Configuration)\"</Command>
+      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglut.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to the output dir.</Message>
