@@ -2,6 +2,14 @@
 #include <iostream>
 #include <math.h>
 
+void ProcessKeyboardKey( unsigned char i_key, int x, int y )
+{
+	if (i_key == 27)
+	{
+		exit( 0 );
+	}
+}
+
 void Display()
 {
 	glClear( GL_COLOR_BUFFER_BIT );
@@ -34,6 +42,7 @@ void main( int argc, char** argv ) {
 	glutInitWindowPosition( 0, 0 );
 	glutCreateWindow( "HelloWorld" );
 	glutDisplayFunc( Display );
+	glutKeyboardFunc( ProcessKeyboardKey );
 	glutIdleFunc( Idle );
 	Init();
 	glutMainLoop();
