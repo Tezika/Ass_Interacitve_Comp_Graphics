@@ -4,6 +4,7 @@
 
 void ProcessKeyboardKey( unsigned char i_key, int x, int y )
 {
+	// 27 is the ACSII keycode for the 'esc' key.
 	if (i_key == 27)
 	{
 		exit( 0 );
@@ -18,6 +19,7 @@ void Display()
 
 void Idle()
 {
+	// Submit the animated background colors
 	float elapsedTime = glutGet( GLUT_ELAPSED_TIME ) / 1000.0;
 	float r = 1 + sinf( elapsedTime ) / 2;
 	float g = 1 + cosf( elapsedTime ) / 2;
