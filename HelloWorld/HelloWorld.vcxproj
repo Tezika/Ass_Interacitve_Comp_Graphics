@@ -115,10 +115,12 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OpenGL32.Lib;freeglutd.lib</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <PerUserRedirection>true</PerUserRedirection>
+      <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglutd.dll" "$(TargetDir)"</Command>
+      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to output dir.</Message>
@@ -138,10 +140,12 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OpenGL32.Lib;freeglutd.lib</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <PerUserRedirection>true</PerUserRedirection>
+      <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglutd.dll" "$(TargetDir)"</Command>
+      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to output dir.</Message>
@@ -165,10 +169,12 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OpenGL32.Lib;freeglut.lib</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <PerUserRedirection>true</PerUserRedirection>
+      <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglut.dll" "$(TargetDir)"</Command>
+      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to the output dir.</Message>
@@ -192,10 +198,12 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OpenGL32.Lib;freeglut.lib</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <PerUserRedirection>true</PerUserRedirection>
+      <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\freeglut.dll" "$(TargetDir)"</Command>
+      <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to the output dir.</Message>
