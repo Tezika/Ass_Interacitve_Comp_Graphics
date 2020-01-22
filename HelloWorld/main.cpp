@@ -2,7 +2,6 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
 
-GLuint VBO;
 int main( void )
 {
 	GLFWwindow* pWindow;
@@ -34,7 +33,7 @@ int main( void )
 	{
 		/* Render here */
 		glClear( GL_COLOR_BUFFER_BIT );
-
+		GLuint VBO;
 		// Added the simple test code to draw a single point in the middle of the screen.
 		glm::vec3 vertices[1];
 		vertices[0] = glm::vec3( 0.0f, 0.0f, 0.0f );
