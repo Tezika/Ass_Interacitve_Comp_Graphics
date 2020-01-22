@@ -2,6 +2,22 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
 
+void Display()
+{
+	GLuint VBO;
+	// Added the simple test code to draw a single point in the middle of the screen.
+	glm::vec3 vertices[1];
+	vertices[0] = glm::vec3( 0.0f, 0.0f, 0.0f );
+	glGenBuffers( 1, &VBO );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
+	glEnableVertexAttribArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 );
+	glDrawArrays( GL_POINTS, 0, 1 );
+	glDisableVertexAttribArray( 0 );
+}
+
 int main( void )
 {
 	GLFWwindow* pWindow;
@@ -33,20 +49,7 @@ int main( void )
 	{
 		/* Render here */
 		glClear( GL_COLOR_BUFFER_BIT );
-		GLuint VBO;
-		// Added the simple test code to draw a single point in the middle of the screen.
-		glm::vec3 vertices[1];
-		vertices[0] = glm::vec3( 0.0f, 0.0f, 0.0f );
-		glGenBuffers( 1, &VBO );
-		glBindBuffer( GL_ARRAY_BUFFER, VBO );
-		glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
-		glEnableVertexAttribArray( 0 );
-		glBindBuffer( GL_ARRAY_BUFFER, VBO );
-		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-		glDrawArrays( GL_POINTS, 0, 1 );
-		glDisableVertexAttribArray( 0 );
-		// ........
-
+		Display();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
 		/* Poll for and process events */
