@@ -6,14 +6,11 @@ GLuint VBO;
 int main( void )
 {
 	GLFWwindow* pWindow;
-
 	/* Initialize the library */
 	if (!glfwInit())
 	{
-		return -1;
-	}
-	if (!glewInit())
-	{
+		/* Problem: glewInit failed, something is seriously wrong. */
+		fprintf( stderr, "Initialized GLFW failed");
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
@@ -25,6 +22,14 @@ int main( void )
 	}
 	/* Make the window's context current */
 	glfwMakeContextCurrent( pWindow );
+
+	GLenum err = glewInit();
+	if (GLEW_OK != err)
+	{
+		/* Problem: glewInit failed, something is seriously wrong. */
+		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
+	}
+
 	while (!glfwWindowShouldClose( pWindow ))
 	{
 		/* Render here */
@@ -32,9 +37,9 @@ int main( void )
 
 		glm::vec3 vertices[1];
 		vertices[0] = glm::vec3( 0.0f, 0.0f, 0.0f );
-		//glGenBuffers( 1, &VBO );
-		//glBindBuffer( GL_ARRAY_BUFFER, VBO );
-		//glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
+		glGenBuffers( 1, &VBO );
+		glBindBuffer( GL_ARRAY_BUFFER, VBO );
+		glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
