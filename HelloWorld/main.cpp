@@ -8,10 +8,9 @@ GLuint VBO;
 void Initialize()
 {
 	glm::vec3 vertices[3];
-	vertices[0] = glm::vec3( 0.0f, 0.0f, 0.0f );
-	vertices[1] = glm::vec3( 3.0f, -1.0f, 0.0f );
-	vertices[2] = glm::vec3( -3.0f, -1.0f, 0.0f );
-
+	vertices[0] = glm::vec3( -0.9f, -0.5f, 0.0f );
+	vertices[1] = glm::vec3( -0.0f, -0.5f, 0.0f );
+	vertices[2] = glm::vec3( -0.45f, 0.5f, 0.0f );
 	glGenVertexArrays( 1, &VAO );
 	glBindVertexArray( VAO );
 	glGenBuffers( 2, &VBO );
@@ -42,7 +41,7 @@ int main( void )
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
-	pWindow = glfwCreateWindow( 1920, 1080, "Hello World", NULL, NULL );
+	pWindow = glfwCreateWindow( 640, 480, "Hello World", NULL, NULL );
 	if (!pWindow)
 	{
 		glfwTerminate();
