@@ -2,7 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
 
-
+GLuint VBO;
 int main( void )
 {
 	GLFWwindow* pWindow;
@@ -23,12 +23,25 @@ int main( void )
 		glfwTerminate();
 		return -1;
 	}
-	glm::vec3 vertices[1];
-	vertices[0] = glm::vec3( 0.0f, 0.0f, 0.0f );
-	GLuint VBO;
-	glGenBuffers( 1, &VBO );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
+	/* Make the window's context current */
+	glfwMakeContextCurrent( pWindow );
+	while (!glfwWindowShouldClose( pWindow ))
+	{
+		/* Render here */
+		glClear( GL_COLOR_BUFFER_BIT );
+
+		glm::vec3 vertices[1];
+		vertices[0] = glm::vec3( 0.0f, 0.0f, 0.0f );
+		//glGenBuffers( 1, &VBO );
+		//glBindBuffer( GL_ARRAY_BUFFER, VBO );
+		//glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
+
+		/* Swap front and back buffers */
+		glfwSwapBuffers( pWindow );
+		/* Poll for and process events */
+		glfwPollEvents();
+	}
+
 	glfwTerminate();
 	return 0;
 }
