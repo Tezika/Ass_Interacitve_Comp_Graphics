@@ -2,20 +2,33 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
 
-void Display()
+GLuint VAO;
+GLuint VBO;
+
+void Initialize()
 {
-	GLuint VBO;
-	// Added the simple test code to draw a single point in the middle of the screen.
-	glm::vec3 vertices[1];
+	glm::vec3 vertices[3];
 	vertices[0] = glm::vec3( 0.0f, 0.0f, 0.0f );
-	glGenBuffers( 1, &VBO );
+	vertices[1] = glm::vec3( 3.0f, -1.0f, 0.0f );
+	vertices[2] = glm::vec3( -3.0f, -1.0f, 0.0f );
+
+	glGenVertexArrays( 1, &VAO );
+	glBindVertexArray( VAO );
+	glGenBuffers( 2, &VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO );
 	glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), 0 );
 	glEnableVertexAttribArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-	glDrawArrays( GL_POINTS, 0, 1 );
-	glDisableVertexAttribArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindVertexArray( 0 );
+}
+
+void Render()
+{
+	glClearColor( 0, 0, 0.2, 0 );
+	glClear( GL_COLOR_BUFFER_BIT );
+	glBindVertexArray( VAO );
+	glDrawArrays( GL_TRIANGLES, 0, 3 );
 }
 
 int main( void )
@@ -29,7 +42,7 @@ int main( void )
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
-	pWindow = glfwCreateWindow( 640, 480, "Hello World", NULL, NULL );
+	pWindow = glfwCreateWindow( 1920, 1080, "Hello World", NULL, NULL );
 	if (!pWindow)
 	{
 		glfwTerminate();
@@ -45,11 +58,11 @@ int main( void )
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
 
+	Initialize();
+
 	while (!glfwWindowShouldClose( pWindow ))
 	{
-		/* Render here */
-		glClear( GL_COLOR_BUFFER_BIT );
-		Display();
+		Render();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
 		/* Poll for and process events */
