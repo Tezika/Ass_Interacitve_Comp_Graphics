@@ -1,16 +1,16 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/vec3.hpp>
+#include <cy/cyVector.h>
 
 GLuint VAO;
 GLuint VBO;
 
 void Initialize()
 {
-	glm::vec3 vertices[3];
-	vertices[0] = glm::vec3( -0.9f, -0.5f, 0.0f );
-	vertices[1] = glm::vec3( -0.0f, -0.5f, 0.0f );
-	vertices[2] = glm::vec3( -0.45f, 0.5f, 0.0f );
+	cy::Vec3f vertices[3];
+	vertices[0] = cy::Vec3f( -0.9f, -0.5f, 0.0f );
+	vertices[1] = cy::Vec3f( -0.0f, -0.5f, 0.0f );
+	vertices[2] = cy::Vec3f( -0.45f, 0.5f, 0.0f );
 	glGenVertexArrays( 1, &VAO );
 	glGenBuffers( 1, &VBO );
 
