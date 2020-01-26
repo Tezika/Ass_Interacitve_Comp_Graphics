@@ -1,35 +1,46 @@
+#pragma warning(disable : 4996)
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <cy/cyVector.h>
+#include <cy/cyTriMesh.h>
 
 GLuint VAO;
 GLuint VBO;
+cy::TriMesh triMesh;
 
 void Initialize()
 {
-	
-	cy::Vec3f vertices[3];
-	vertices[0] = cy::Vec3f( -0.9f, -0.5f, 0.0f );
-	vertices[1] = cy::Vec3f( -0.0f, -0.5f, 0.0f );
-	vertices[2] = cy::Vec3f( -0.45f, 0.5f, 0.0f );
+	if (!triMesh.LoadFromFileObj( "content/teapot.obj" ))
+	{
+		fprintf( stderr, "Failed to load the teapot.obj\n" );
+	}
+	else
+	{
+		fprintf( stdout, "Loaded the teapot.obj successfully\n" );
+	}
+
 	glGenVertexArrays( 1, &VAO );
 	glGenBuffers( 1, &VBO );
 
+	std::vector<cy::Vec3f> vertices;
+	for (size_t i = 0; i < triMesh.NV(); i++)
+	{
+		vertices.push_back( triMesh.V( i ) );
+	}
+
 	glBindVertexArray( VAO );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), 0 );
 	glEnableVertexAttribArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO );
+	glBufferData( GL_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( cy::Vec3f ) * triMesh.NV()), reinterpret_cast<void*>(&vertices[0]), GL_STATIC_DRAW );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GL_FLOAT ), 0 );
 }
 
-void Render()
+void Display()
 {
 	glClearColor( 0, 0, 0.2, 0 );
 	glClear( GL_COLOR_BUFFER_BIT );
 	glBindVertexArray( VAO );
-	glDrawArrays( GL_TRIANGLES, 0, 3 );
+	glDrawArrays( GL_TRIANGLES, 0, triMesh.NV() );
 }
 
 int main( void )
@@ -39,7 +50,7 @@ int main( void )
 	if (!glfwInit())
 	{
 		/* Problem: glewInit failed, something is seriously wrong. */
-		fprintf( stderr, "Initialized GLFW failed" );
+		fprintf( stderr, "Initialized GLFW failed\n" );
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
@@ -63,7 +74,7 @@ int main( void )
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
-		Render();
+		Display();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
 		/* Poll for and process events */
