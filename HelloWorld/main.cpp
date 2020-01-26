@@ -29,18 +29,19 @@ void Initialize()
 	{
 		vertices.push_back( triMesh.V( i ) );
 	}
-
 	glBindVertexArray( VAO );
 	assert( glGetError() == GL_NO_ERROR );
 	// For vertex data
 	glGenBuffers( 1, &VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO );
-	glBufferData( GL_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( cyVec3f ) * triMesh.NV()), reinterpret_cast<void*>(vertices.data()), GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), reinterpret_cast<GLvoid*>(offsetof( cyVec3f, x )) );
+	glBufferData( GL_ARRAY_BUFFER, static_cast <GLsizei>(sizeof( cyVec3f ) * triMesh.NV()), reinterpret_cast<void*>(&vertices[0]), GL_STATIC_DRAW );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast <GLsizei>(sizeof(cyVec3f)), (void*)0 );
 	glEnableVertexAttribArray( 0 );
 	assert( glGetError() == GL_NO_ERROR );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindVertexArray( 0 );
 	// For element data
-	glGenBuffers( 1, &EBO );
+/*	glGenBuffers( 1, &EBO );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, EBO );
 	std::vector<unsigned int> indices;
 	for (size_t i = 0; i < triMesh.NF(); i++)
@@ -51,8 +52,10 @@ void Initialize()
 			indices.push_back( triFace.v[j] );
 		}
 	}
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * triMesh.NF()), reinterpret_cast<void*>(indices.data()), GL_STATIC_DRAW );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * triMesh.NF()), reinterpret_cast<void*>(&indices[0]), GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
+
+	Display()*/;
 }
 
 void Display()
@@ -97,8 +100,10 @@ void Display()
 	// Draw elements
 	{
 		const GLvoid* const offset = 0;
-		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * triMesh.NF()), GL_UNSIGNED_INT, offset );
+		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * triMesh.NF()), GL_UNSIGNED_INT, offset );
+		glDrawArrays( GL_TRIANGLES, 0, triMesh.NV() );
 		assert( glGetError() == GL_NO_ERROR );
+		glBindVertexArray( 0 );
 	}
 }
 
@@ -113,12 +118,13 @@ int main( void )
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
-	pWindow = glfwCreateWindow( 640, 480, "Hello World", NULL, NULL );
+	pWindow = glfwCreateWindow( 1920, 1080, "Hello World", NULL, NULL );
 	if (!pWindow)
 	{
 		glfwTerminate();
 		return -1;
 	}
+	glfwWindowHint( GLFW_DEPTH_BITS, GL_TRUE );
 	/* Make the window's context current */
 	glfwMakeContextCurrent( pWindow );
 
@@ -139,6 +145,10 @@ int main( void )
 		/* Poll for and process events */
 		glfwPollEvents();
 	}
+	glDeleteVertexArrays( 1, &VAO );
+	assert( glGetError() == GL_NO_ERROR );
+	glDeleteBuffers( 1, &VBO );
+	assert( glGetError() == GL_NO_ERROR );
 
 	glfwTerminate();
 	return 0;
