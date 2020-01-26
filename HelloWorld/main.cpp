@@ -55,7 +55,7 @@ void InitializeGLBuffers()
 	std::vector<unsigned int> indices;
 	for (size_t i = 0; i < triMesh.NF(); i++)
 	{
-		auto triFace = triMesh.F( i );
+		auto triFace = g_triMesh.F( i );
 		for (size_t j = 0; j < 3; j++)
 		{
 			indices.push_back( triFace.v[j] );
@@ -111,7 +111,7 @@ void Display()
 	// Draw elements
 	{
 		const GLvoid* const offset = 0;
-		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * triMesh.NF()), GL_UNSIGNED_INT, offset );
+		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
 		glDrawArrays( GL_TRIANGLES, 0, g_triMesh.NV() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
@@ -129,7 +129,7 @@ int main( void )
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
-	pWindow = glfwCreateWindow( 1920, 1080, "Hello World", NULL, NULL );
+	pWindow = glfwCreateWindow( 640, 480, "Hello World", NULL, NULL );
 	if (!pWindow)
 	{
 		glfwTerminate();
