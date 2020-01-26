@@ -7,6 +7,7 @@ GLuint VBO;
 
 void Initialize()
 {
+	
 	cy::Vec3f vertices[3];
 	vertices[0] = cy::Vec3f( -0.9f, -0.5f, 0.0f );
 	vertices[1] = cy::Vec3f( -0.0f, -0.5f, 0.0f );

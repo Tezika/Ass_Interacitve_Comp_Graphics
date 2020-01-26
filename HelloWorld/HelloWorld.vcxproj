@@ -115,13 +115,12 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glmd.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
@@ -142,13 +141,12 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Comma
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glmd.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
@@ -173,13 +171,12 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Comma
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glm.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
@@ -204,13 +201,12 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Comma
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glm.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
