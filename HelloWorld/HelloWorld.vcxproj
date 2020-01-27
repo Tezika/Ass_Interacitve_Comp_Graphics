@@ -115,13 +115,14 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;glmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Command>
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to output dir.</Message>
@@ -141,13 +142,14 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Comma
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;glmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Command>
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to output dir.</Message>
@@ -171,13 +173,14 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Comma
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;glm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Command>
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to the output dir.</Message>
@@ -201,13 +204,14 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Comma
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;glm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"</Command>
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to the output dir.</Message>

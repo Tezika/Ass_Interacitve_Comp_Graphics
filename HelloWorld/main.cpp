@@ -8,6 +8,7 @@
 #include <cy/cyVector.h>
 #include <cy/cyTriMesh.h>
 #include <cy/cyMatrix.h>
+#include <glm/glm.hpp>
 
 GLuint VAO;
 GLuint VBO;
@@ -153,20 +154,20 @@ void UpdateView()
 	g_mat_view = cyMatrix4f( 1.0f );
 	g_mat_perspective = cyMatrix4f( 1.0f );
 
-	g_mat_model.SetRotationX( -60 * 3.14 / 180.0f );
-	g_mat_view.SetTranslation( cyVec3f( 0, 0, -40 ) );
-	g_mat_perspective.SetPerspective( 45 * 3.14 / 180.0f, 640.0f / 480.0f, 0.1f, 100.0f );
+	g_mat_model.SetRotationX( glm::radians(-60.0f) );
+	g_mat_view.SetTranslation( cyVec3f( 0, 0, -50.0f ) );
+	g_mat_perspective.SetPerspective( glm::radians(45.0f), 640.0f / 480.0f, 0.1f, 100.0f );
 
 	unsigned int modelLoc = glGetUniformLocation( g_shaderProgram.GetID(), "model" );
-	glUniformMatrix4fv( modelLoc, 1, GL_FALSE, &g_mat_model.cell[0] );
+	glUniformMatrix4fv( modelLoc, 1, GL_FALSE, g_mat_model.cell );
 	assert( glGetError() == GL_NO_ERROR );
 
 	unsigned int viewLoc = glGetUniformLocation( g_shaderProgram.GetID(), "view" );
-	glUniformMatrix4fv( viewLoc, 1, GL_FALSE, &g_mat_view.cell[0] );
+	glUniformMatrix4fv( viewLoc, 1, GL_FALSE, g_mat_view.cell );
 	assert( glGetError() == GL_NO_ERROR );
 
 	unsigned int projectionLoc = glGetUniformLocation( g_shaderProgram.GetID(), "projection" );
-	glUniformMatrix4fv( projectionLoc, 1, GL_FALSE, &g_mat_perspective.cell[0] );
+	glUniformMatrix4fv( projectionLoc, 1, GL_FALSE, g_mat_perspective.cell );
 	assert( glGetError() == GL_NO_ERROR );
 }
 
