@@ -12,6 +12,7 @@
 
 GLuint VAO;
 GLuint VBO;
+GLuint EBO;
 
 cyGLSLProgram g_shaderProgram;
 cyGLSLShader g_vertexShader;
@@ -53,6 +54,7 @@ void InitializeGL()
 	if (!g_triMesh.LoadFromFileObj( "content/teapot.obj" ))
 	{
 		fprintf( stderr, "Failed to load the teapot.obj.\n" );
+		assert( false );
 	}
 	else
 	{
@@ -76,10 +78,10 @@ void InitializeGL()
 	assert( glGetError() == GL_NO_ERROR );
 
 	// For element data
-/*	glGenBuffers( 1, &EBO );
+	glGenBuffers( 1, &EBO );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, EBO );
 	std::vector<unsigned int> indices;
-	for (size_t i = 0; i < triMesh.NF(); i++)
+	for (size_t i = 0; i < g_triMesh.NF(); i++)
 	{
 		auto triFace = g_triMesh.F( i );
 		for (size_t j = 0; j < 3; j++)
@@ -87,9 +89,9 @@ void InitializeGL()
 			indices.push_back( triFace.v[j] );
 		}
 	}
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * triMesh.NF()), reinterpret_cast<void*>(&indices[0]), GL_STATIC_DRAW );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * g_triMesh.NF()), reinterpret_cast<void*>(&indices[0]), GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
-	*/
+	
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindVertexArray( 0 );
 }
@@ -139,8 +141,7 @@ void Display()
 	// Draw elements
 	{
 		const GLvoid* const offset = 0;
-		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
-		glDrawArrays( GL_POINTS, 0, g_triMesh.NV() );
+		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
