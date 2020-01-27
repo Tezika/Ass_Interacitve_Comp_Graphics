@@ -11,7 +11,6 @@
 
 GLuint VAO;
 GLuint VBO;
-GLuint EBO;
 
 cyGLSLProgram g_shaderProgram;
 cyGLSLShader g_vertexShader;
@@ -92,7 +91,6 @@ void InitializeGL()
 	*/
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindVertexArray( 0 );
-	glEnable( GL_DEPTH_TEST );
 }
 
 void Display()
@@ -147,6 +145,31 @@ void Display()
 	}
 }
 
+void UpdateView()
+{
+	g_shaderProgram.Bind();
+
+	g_mat_model = cyMatrix4f( 1.0f );
+	g_mat_view = cyMatrix4f( 1.0f );
+	g_mat_perspective = cyMatrix4f( 1.0f );
+
+	g_mat_model.SetRotationX( -60 * 3.14 / 180.0f );
+	g_mat_view.SetTranslation( cyVec3f( 0, 0, -40 ) );
+	g_mat_perspective.SetPerspective( 45 * 3.14 / 180.0f, 640.0f / 480.0f, 0.1f, 100.0f );
+
+	unsigned int modelLoc = glGetUniformLocation( g_shaderProgram.GetID(), "model" );
+	glUniformMatrix4fv( modelLoc, 1, GL_FALSE, &g_mat_model.cell[0] );
+	assert( glGetError() == GL_NO_ERROR );
+
+	unsigned int viewLoc = glGetUniformLocation( g_shaderProgram.GetID(), "view" );
+	glUniformMatrix4fv( viewLoc, 1, GL_FALSE, &g_mat_view.cell[0] );
+	assert( glGetError() == GL_NO_ERROR );
+
+	unsigned int projectionLoc = glGetUniformLocation( g_shaderProgram.GetID(), "projection" );
+	glUniformMatrix4fv( projectionLoc, 1, GL_FALSE, &g_mat_perspective.cell[0] );
+	assert( glGetError() == GL_NO_ERROR );
+}
+
 int main( void )
 {
 	GLFWwindow* pWindow;
@@ -180,28 +203,7 @@ int main( void )
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
-		g_shaderProgram.Bind();
-
-		g_mat_model = cyMatrix4f( 1.0f );
-		g_mat_view = cyMatrix4f( 1.0f );
-		g_mat_perspective = cyMatrix4f( 1.0f );
-
-		g_mat_model.SetRotationX( -100 * 3.14 / 180.0f );
-		g_mat_view.SetTranslation( cyVec3f( 0, 0, -40.0f ) );
-		g_mat_perspective.SetPerspective( 100 * 3.14 / 180.0f, 800.0f / 600.0f, 0.1f, 100.0f );
-
-		unsigned int modelLoc = glGetUniformLocation( g_shaderProgram.GetID(), "model" );
-		glUniformMatrix4fv( modelLoc, 1, GL_FALSE, &g_mat_model.cell[0] );
-		assert( glGetError() == GL_NO_ERROR );
-
-		unsigned int viewLoc = glGetUniformLocation( g_shaderProgram.GetID(), "view" );
-		glUniformMatrix4fv( viewLoc, 1, GL_FALSE, &g_mat_view.cell[0] );
-		assert( glGetError() == GL_NO_ERROR );
-
-		unsigned int projectionLoc = glGetUniformLocation( g_shaderProgram.GetID(), "projection" );
-		glUniformMatrix4fv( projectionLoc, 1, GL_FALSE, &g_mat_perspective.cell[0] );
-		assert( glGetError() == GL_NO_ERROR );
-
+		UpdateView();
 		Display();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
