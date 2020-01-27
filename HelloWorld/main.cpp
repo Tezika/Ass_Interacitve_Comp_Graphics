@@ -12,16 +12,43 @@
 GLuint VAO;
 GLuint VBO;
 GLuint EBO;
+
 cyGLSLProgram g_shaderProgram;
+cyGLSLShader g_vertexShader;
+cyGLSLShader g_fragmentShader;
+
 cyTriMesh g_triMesh;
+
+cyMatrix4f g_mat_model;
+cyMatrix4f g_mat_view;
+cyMatrix4f g_mat_perspective;
 
 void InitializeShaders()
 {
-	g_shaderProgram.BuildFiles( "content/vertex.shader", "content/fragment.shader" );
+	g_shaderProgram.CreateProgram();
+	if (!g_vertexShader.CompileFile("content/vertex.shader", GL_VERTEX_SHADER))
+	{
+		fprintf( stderr, "Failed to compile the vertex shader.\n");
+	}
+	else
+	{
+		fprintf( stdout, "Compiled the vertex shader successfully.\n" );
+	}
+	if (!g_fragmentShader.CompileFile( "content/fragment.shader", GL_FRAGMENT_SHADER ))
+	{
+		fprintf( stderr, "Failed to compile the fragment shader.\n" );
+	}
+	else
+	{
+		fprintf( stdout, "Compiled the fragment shader successfully.\n" );
+	}
+	g_shaderProgram.AttachShader( g_vertexShader );
+	g_shaderProgram.AttachShader( g_fragmentShader );
+	g_shaderProgram.Link();
 	assert( glGetError() == GL_NO_ERROR );
 }
 
-void InitializeGLBuffers()
+void InitializeGL()
 {
 	if (!g_triMesh.LoadFromFileObj( "content/teapot.obj" ))
 	{
@@ -43,12 +70,11 @@ void InitializeGLBuffers()
 	// For vertex data
 	glGenBuffers( 1, &VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO );
-	glBufferData( GL_ARRAY_BUFFER, static_cast <GLsizei>(sizeof( cyVec3f ) * g_triMesh.NV()), reinterpret_cast<void*>(&vertices[0]), GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, static_cast <GLsizei>(sizeof( cyVec3f ) * g_triMesh.NV()), reinterpret_cast<void*>(vertices.data()), GL_STATIC_DRAW );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast <GLsizei>(sizeof( cyVec3f )), (void*)0 );
 	glEnableVertexAttribArray( 0 );
 	assert( glGetError() == GL_NO_ERROR );
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindVertexArray( 0 );
+
 	// For element data
 /*	glGenBuffers( 1, &EBO );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, EBO );
@@ -64,6 +90,9 @@ void InitializeGLBuffers()
 	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * triMesh.NF()), reinterpret_cast<void*>(&indices[0]), GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
 	*/
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindVertexArray( 0 );
+	glEnable( GL_DEPTH_TEST );
 }
 
 void Display()
@@ -112,7 +141,7 @@ void Display()
 	{
 		const GLvoid* const offset = 0;
 		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
-		glDrawArrays( GL_TRIANGLES, 0, g_triMesh.NV() );
+		glDrawArrays( GL_POINTS, 0, g_triMesh.NV() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
@@ -147,10 +176,32 @@ int main( void )
 	}
 
 	InitializeShaders();
-	InitializeGLBuffers();
+	InitializeGL();
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
+		g_shaderProgram.Bind();
+
+		g_mat_model = cyMatrix4f( 1.0f );
+		g_mat_view = cyMatrix4f( 1.0f );
+		g_mat_perspective = cyMatrix4f( 1.0f );
+
+		g_mat_model.SetRotationX( -100 * 3.14 / 180.0f );
+		g_mat_view.SetTranslation( cyVec3f( 0, 0, -40.0f ) );
+		g_mat_perspective.SetPerspective( 100 * 3.14 / 180.0f, 800.0f / 600.0f, 0.1f, 100.0f );
+
+		unsigned int modelLoc = glGetUniformLocation( g_shaderProgram.GetID(), "model" );
+		glUniformMatrix4fv( modelLoc, 1, GL_FALSE, &g_mat_model.cell[0] );
+		assert( glGetError() == GL_NO_ERROR );
+
+		unsigned int viewLoc = glGetUniformLocation( g_shaderProgram.GetID(), "view" );
+		glUniformMatrix4fv( viewLoc, 1, GL_FALSE, &g_mat_view.cell[0] );
+		assert( glGetError() == GL_NO_ERROR );
+
+		unsigned int projectionLoc = glGetUniformLocation( g_shaderProgram.GetID(), "projection" );
+		glUniformMatrix4fv( projectionLoc, 1, GL_FALSE, &g_mat_perspective.cell[0] );
+		assert( glGetError() == GL_NO_ERROR );
+
 		Display();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
@@ -163,6 +214,8 @@ int main( void )
 		assert( glGetError() == GL_NO_ERROR );
 		glDeleteBuffers( 1, &VBO );
 		assert( glGetError() == GL_NO_ERROR );
+		g_vertexShader.Delete();
+		g_fragmentShader.Delete();
 		g_shaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 	}

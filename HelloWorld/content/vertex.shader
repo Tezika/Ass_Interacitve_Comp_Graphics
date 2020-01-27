@@ -4,9 +4,11 @@
 
 // The locations assigned are arbitrary
 // but must match the C calls to glVertexAttribPointer()
-
-// These values come from one of the VertexFormats::s3dObject that the vertex buffer was filled with in C code
 layout( location = 0 ) in vec3 i_vertexPosition_local;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
 // Output
 //=======
@@ -20,8 +22,5 @@ layout( location = 0 ) in vec3 i_vertexPosition_local;
 
 void main()
 {
-	// float x = i_vertexPosition_local.x * 0.05f;
-	// float y = i_vertexPosition_local.y * 0.05f;
-	// float z = i_vertexPosition_local.z * 0.05f;
-	gl_Position = vec4(i_vertexPosition_local, 1);
+	 gl_Position =  projection * view * model * vec4(i_vertexPosition_local, 1);
 }
