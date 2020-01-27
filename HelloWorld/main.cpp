@@ -76,6 +76,7 @@ void InitializeGL()
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast <GLsizei>(sizeof( cyVec3f )), (void*)0 );
 	glEnableVertexAttribArray( 0 );
 	assert( glGetError() == GL_NO_ERROR );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
 	// For element data
 	glGenBuffers( 1, &EBO );
@@ -91,8 +92,8 @@ void InitializeGL()
 	}
 	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * g_triMesh.NF()), reinterpret_cast<void*>(&indices[0]), GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
-
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
 	glBindVertexArray( 0 );
 }
 
