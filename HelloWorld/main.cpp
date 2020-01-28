@@ -2,6 +2,7 @@
 #pragma warning(disable : 4996)
 // Fixed the wingdi 100 errors by adding the windows header file.
 #include <windows.h>
+
 #include <GL/glew.h>
 #include <cy/cyGL.h>
 #include <GLFW/glfw3.h>
@@ -12,6 +13,7 @@
 
 GLuint VAO;
 GLuint VBO;
+GLuint EBO;
 
 cyGLSLProgram g_shaderProgram;
 cyGLSLShader g_vertexShader;
@@ -23,18 +25,31 @@ cyMatrix4f g_mat_model;
 cyMatrix4f g_mat_view;
 cyMatrix4f g_mat_perspective;
 
-void InitializeShaders()
+float camera_angle_yaw = 0;
+float camera_angle_pitch = 90.0f;
+float camera_distance = 50.0f;
+
+constexpr float Screen_Width = 640;
+constexpr float Screen_Height = 480;
+
+bool left_mouseBtn_drag = false;
+bool right_mouseBtn_drag = false;
+
+void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram )
 {
-	g_shaderProgram.CreateProgram();
-	if (!g_vertexShader.CompileFile("content/vertex.shader", GL_VERTEX_SHADER))
+	g_vertexShader.Delete();
+	assert( glGetError() == GL_NO_ERROR );
+	g_fragmentShader.Delete();
+	assert( glGetError() == GL_NO_ERROR );
+	if (!g_vertexShader.CompileFile( i_path_vertexShader, GL_VERTEX_SHADER ))
 	{
-		fprintf( stderr, "Failed to compile the vertex shader.\n");
+		fprintf( stderr, "Failed to compile the vertex shader.\n" );
 	}
 	else
 	{
 		fprintf( stdout, "Compiled the vertex shader successfully.\n" );
 	}
-	if (!g_fragmentShader.CompileFile( "content/fragment.shader", GL_FRAGMENT_SHADER ))
+	if (!g_fragmentShader.CompileFile( i_path_fragementShader, GL_FRAGMENT_SHADER ))
 	{
 		fprintf( stderr, "Failed to compile the fragment shader.\n" );
 	}
@@ -42,10 +57,16 @@ void InitializeShaders()
 	{
 		fprintf( stdout, "Compiled the fragment shader successfully.\n" );
 	}
-	g_shaderProgram.AttachShader( g_vertexShader );
-	g_shaderProgram.AttachShader( g_fragmentShader );
-	g_shaderProgram.Link();
+	i_glslProgram.AttachShader( g_vertexShader );
+	i_glslProgram.AttachShader( g_fragmentShader );
+	i_glslProgram.Link();
 	assert( glGetError() == GL_NO_ERROR );
+}
+
+void InitializeShaders()
+{
+	g_shaderProgram.CreateProgram();
+	CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
 }
 
 void InitializeGL()
@@ -76,10 +97,10 @@ void InitializeGL()
 	assert( glGetError() == GL_NO_ERROR );
 
 	// For element data
-/*	glGenBuffers( 1, &EBO );
+	glGenBuffers( 1, &EBO );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, EBO );
 	std::vector<unsigned int> indices;
-	for (size_t i = 0; i < triMesh.NF(); i++)
+	for (size_t i = 0; i < g_triMesh.NF(); i++)
 	{
 		auto triFace = g_triMesh.F( i );
 		for (size_t j = 0; j < 3; j++)
@@ -87,9 +108,9 @@ void InitializeGL()
 			indices.push_back( triFace.v[j] );
 		}
 	}
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * triMesh.NF()), reinterpret_cast<void*>(&indices[0]), GL_STATIC_DRAW );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * g_triMesh.NF()), reinterpret_cast<void*>(&indices[0]), GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
-	*/
+
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindVertexArray( 0 );
 }
@@ -139,14 +160,13 @@ void Display()
 	// Draw elements
 	{
 		const GLvoid* const offset = 0;
-		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
-		glDrawArrays( GL_POINTS, 0, g_triMesh.NV() );
+		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
 }
 
-void UpdateView()
+void UpdateCamera()
 {
 	g_shaderProgram.Bind();
 
@@ -154,9 +174,9 @@ void UpdateView()
 	g_mat_view = cyMatrix4f( 1.0f );
 	g_mat_perspective = cyMatrix4f( 1.0f );
 
-	g_mat_model.SetRotationX( glm::radians(-60.0f) );
-	g_mat_view.SetTranslation( cyVec3f( 0, 0, -50.0f ) );
-	g_mat_perspective.SetPerspective( glm::radians(45.0f), 640.0f / 480.0f, 0.1f, 100.0f );
+	g_mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+	g_mat_view.SetTranslation( cyVec3f( 0, 0, -camera_distance ) );
+	g_mat_perspective.SetPerspective( glm::radians( 45.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
 
 	unsigned int modelLoc = glGetUniformLocation( g_shaderProgram.GetID(), "model" );
 	glUniformMatrix4fv( modelLoc, 1, GL_FALSE, g_mat_model.cell );
@@ -171,6 +191,79 @@ void UpdateView()
 	assert( glGetError() == GL_NO_ERROR );
 }
 
+
+void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
+{
+	assert( i_pWindow );
+}
+
+void MouseButtonCallback( GLFWwindow* i_pWindow, int i_button, int i_action, int i_mods )
+{
+	assert( i_pWindow );
+	if (i_button == GLFW_MOUSE_BUTTON_LEFT)
+	{
+		if (i_action == GLFW_PRESS)
+		{
+			left_mouseBtn_drag = true;
+		}
+		else if (i_action == GLFW_RELEASE)
+		{
+			left_mouseBtn_drag = false;
+		}
+	}
+	if (i_button == GLFW_MOUSE_BUTTON_RIGHT)
+	{
+		if (i_action == GLFW_PRESS)
+		{
+			right_mouseBtn_drag = true;
+		}
+		else if (i_action == GLFW_RELEASE)
+		{
+			right_mouseBtn_drag = false;
+		}
+	}
+}
+
+void UpdateMouseInput( GLFWwindow* i_pWindow )
+{
+	// Get a new camera distance
+	if (right_mouseBtn_drag)
+	{
+
+	}
+	// Get a new camera rotation
+	if (left_mouseBtn_drag)
+	{
+		static cyVec2d _cachedLeftMousePos( 0, 0 );
+		double pos_x;
+		double pos_y;
+		glfwGetCursorPos( i_pWindow, &pos_x, &pos_y );
+		fprintf( stdout, "The mouse position is %.3f, %.3f\n", pos_x, pos_y );
+		auto pos_mouse = cyVec2d( pos_x, pos_y );
+		auto dis = _cachedLeftMousePos - pos_mouse;
+		dis.Normalize();
+		_cachedLeftMousePos = pos_mouse;
+		// Rotate around yaw
+		if (dis.Dot( cyVec2d( 1, 0 ) ) > 0)
+		{
+			camera_angle_yaw -= 0.2f;
+		}
+		else if (dis.Dot( cyVec2d( 1, 0 ) ) < 0)
+		{
+			camera_angle_yaw += 0.2f;
+		}
+		// Rotate around the pitch
+		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
+		{
+			camera_angle_pitch -= 0.2f;
+		}
+		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
+		{
+			camera_angle_pitch += 0.2f;
+		}
+	}
+}
+
 int main( void )
 {
 	GLFWwindow* pWindow;
@@ -182,13 +275,16 @@ int main( void )
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
-	pWindow = glfwCreateWindow( 640, 480, "Hello World", NULL, NULL );
+	pWindow = glfwCreateWindow( Screen_Width, Screen_Height, "Hello World", NULL, NULL );
 	if (!pWindow)
 	{
 		glfwTerminate();
 		return -1;
 	}
 	glfwWindowHint( GLFW_DEPTH_BITS, GL_TRUE );
+	// Register the mouse and keyboard callback.
+	glfwSetMouseButtonCallback( pWindow, MouseButtonCallback );
+	glfwSetKeyCallback( pWindow, KeyboardCallback );
 	/* Make the window's context current */
 	glfwMakeContextCurrent( pWindow );
 
@@ -204,7 +300,8 @@ int main( void )
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
-		UpdateView();
+		UpdateMouseInput( pWindow );
+		UpdateCamera();
 		Display();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
@@ -217,6 +314,7 @@ int main( void )
 		assert( glGetError() == GL_NO_ERROR );
 		glDeleteBuffers( 1, &VBO );
 		assert( glGetError() == GL_NO_ERROR );
+		glDeleteBuffers( 1, &EBO );
 		g_vertexShader.Delete();
 		g_fragmentShader.Delete();
 		g_shaderProgram.Delete();
