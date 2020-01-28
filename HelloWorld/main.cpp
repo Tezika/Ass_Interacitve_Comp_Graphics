@@ -61,16 +61,19 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	assert( glGetError() == GL_NO_ERROR );
 }
 
-void InitializeTrimesh()
+void InitializeTrimesh( const char* i_objFileName )
 {
-	if (!g_triMesh.LoadFromFileObj( "content/teapot.objt" ))
+	std::string path_objFile;
+	path_objFile += "content/";
+	path_objFile += i_objFileName;
+	if (!g_triMesh.LoadFromFileObj( path_objFile.c_str() ))
 	{
-		fprintf( stderr, "Failed to load the teapot.obj.\n" );
+		fprintf( stderr, "Failed to load the %s.\n", path_objFile.c_str() );
 		assert( false );
 	}
 	else
 	{
-		fprintf( stdout, "Loaded the teapot.obj successfully.\n" );
+		fprintf( stdout, "Loaded the %s successfully.\n", path_objFile.c_str() );
 	}
 	if (!g_triMesh.IsBoundBoxReady())
 	{
@@ -181,11 +184,13 @@ void UpdateCamera()
 	auto worldUp = cyVec3f( 0, 1, 0 );
 	auto cameraRight = worldUp.Cross( cameraDir ).GetNormalized();
 	auto cameraUp = cameraDir.Cross( cameraRight ).GetNormalized();
+
 	auto mat_cameraRotation = cyMatrix4f( 1.0f );
 	mat_cameraRotation.SetRow( 0, cameraRight.x, cameraRight.y, cameraRight.z, 0 );
 	mat_cameraRotation.SetRow( 1, cameraUp.x, cameraUp.y, cameraUp.z, 0 );
 	mat_cameraRotation.SetRow( 2, cameraDir.x, cameraDir.y, cameraDir.z, 0 );
 	mat_cameraRotation.SetRow( 3, 0, 0, 0, 1 );
+
 	auto mat_cameraTranslation = cyMatrix4f( 1.0f );
 	mat_cameraTranslation.SetTranslation( cameraPosition );
 	mat_view = mat_cameraRotation * mat_cameraTranslation;
@@ -289,8 +294,13 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 	}
 }
 
-int main( void )
+int main( int argc, char* argv[] )
 {
+	if (argc < 2)
+	{
+		fprintf( stderr, "Please enter the .obj file name as the argument.\n" );
+		return -1;
+	}
 	GLFWwindow* pWindow;
 	/* Initialize the library */
 	if (!glfwInit())
@@ -321,7 +331,7 @@ int main( void )
 	}
 
 	CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
-	InitializeTrimesh();
+	InitializeTrimesh( argv[1] );
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{

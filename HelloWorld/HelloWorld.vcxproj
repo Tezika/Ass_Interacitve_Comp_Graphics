@@ -122,7 +122,8 @@
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"</Command>
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"
+xcopy /i /r /y "$(ProjectDir)content" "$(TargetDir)content" </Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to output dir.</Message>
@@ -149,7 +150,8 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"</Command
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"</Command>
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"
+xcopy /i /r /y "$(ProjectDir)content" "$(TargetDir)content" </Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to output dir.</Message>
@@ -180,7 +182,8 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"</Command
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"</Command>
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"
+xcopy /i /r /y "$(ProjectDir)content" "$(TargetDir)content" </Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to the output dir.</Message>
@@ -211,7 +214,8 @@ copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"</Command>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
-copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"</Command>
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"
+xcopy /i /r /y "$(ProjectDir)content" "$(TargetDir)content" </Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy .dll files to the output dir.</Message>
