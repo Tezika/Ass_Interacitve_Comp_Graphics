@@ -178,7 +178,7 @@ void UpdateCamera()
 
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 
-	auto cameraTarget = cyVec3f( 0, 0, 0 );
+	auto cameraTarget = (g_triMesh.GetBoundMax() + g_triMesh.GetBoundMin()) / 2;
 	auto cameraPosition = cyVec3f( 0, 0, camera_distance );
 	auto cameraDir = (cameraTarget - cameraPosition).GetNormalized();
 	auto worldUp = cyVec3f( 0, 1, 0 );
