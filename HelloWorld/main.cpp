@@ -21,10 +21,6 @@ cyGLSLShader g_fragmentShader;
 
 cyTriMesh g_triMesh;
 
-cyMatrix4f g_mat_model;
-cyMatrix4f g_mat_view;
-cyMatrix4f g_mat_perspective;
-
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 90.0f;
 float camera_distance = 50.0f;
@@ -37,6 +33,11 @@ bool right_mouseBtn_drag = false;
 
 void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram )
 {
+	g_vertexShader.Delete();
+	g_fragmentShader.Delete();
+	assert( glGetError() == GL_NO_ERROR );
+	i_glslProgram.CreateProgram();
+	assert( glGetError() == GL_NO_ERROR );
 	if (!g_vertexShader.CompileFile( "content/vertex.shader", GL_VERTEX_SHADER ))
 	{
 		fprintf( stderr, "Failed to compile the vertex shader.\n" );
@@ -53,16 +54,10 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	{
 		fprintf( stdout, "Compiled the fragment shader successfully.\n" );
 	}
-	i_glslProgram.AttachShader( g_vertexShader );
-	i_glslProgram.AttachShader( g_fragmentShader );
-	i_glslProgram.Link();
+	g_shaderProgram.AttachShader( g_vertexShader );
+	g_shaderProgram.AttachShader( g_fragmentShader );
+	g_shaderProgram.Link();
 	assert( glGetError() == GL_NO_ERROR );
-}
-
-void InitializeShaders()
-{
-	g_shaderProgram.CreateProgram();
-	CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
 }
 
 void InitializeGL()
@@ -167,24 +162,18 @@ void UpdateCamera()
 {
 	g_shaderProgram.Bind();
 
-	g_mat_model = cyMatrix4f( 1.0f );
-	g_mat_view = cyMatrix4f( 1.0f );
-	g_mat_perspective = cyMatrix4f( 1.0f );
+	auto mat_model = cyMatrix4f( 1.0f );
+	auto mat_view = cyMatrix4f( 1.0f );
+	auto mat_perspective = cyMatrix4f( 1.0f );
+	auto mat_modelToProjection = cyMatrix4f( 1.0f );
 
-	g_mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-	g_mat_view.SetTranslation( cyVec3f( 0, 0, -camera_distance ) );
-	g_mat_perspective.SetPerspective( glm::radians( 45.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
+	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+	mat_view.SetTranslation( cyVec3f( 0, 0, -camera_distance ) );
+	mat_perspective.SetPerspective( glm::radians( 45.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
+	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
-	unsigned int modelLoc = glGetUniformLocation( g_shaderProgram.GetID(), "model" );
-	glUniformMatrix4fv( modelLoc, 1, GL_FALSE, g_mat_model.cell );
-	assert( glGetError() == GL_NO_ERROR );
-
-	unsigned int viewLoc = glGetUniformLocation( g_shaderProgram.GetID(), "view" );
-	glUniformMatrix4fv( viewLoc, 1, GL_FALSE, g_mat_view.cell );
-	assert( glGetError() == GL_NO_ERROR );
-
-	unsigned int projectionLoc = glGetUniformLocation( g_shaderProgram.GetID(), "projection" );
-	glUniformMatrix4fv( projectionLoc, 1, GL_FALSE, g_mat_perspective.cell );
+	unsigned int modelToProjection = glGetUniformLocation( g_shaderProgram.GetID(), "mat_modelToProjection" );
+	glUniformMatrix4fv( modelToProjection, 1, GL_FALSE, mat_modelToProjection.cell );
 	assert( glGetError() == GL_NO_ERROR );
 }
 
@@ -192,6 +181,10 @@ void UpdateCamera()
 void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
 {
 	assert( i_pWindow );
+	if (i_key == GLFW_KEY_F6 && i_action == GLFW_PRESS)
+	{
+		CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
+	}
 }
 
 void MouseButtonCallback( GLFWwindow* i_pWindow, int i_button, int i_action, int i_mods )
@@ -306,7 +299,7 @@ int main( void )
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
 
-	InitializeShaders();
+	CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
 	InitializeGL();
 
 	while (!glfwWindowShouldClose( pWindow ))
