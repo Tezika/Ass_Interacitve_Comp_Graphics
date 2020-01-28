@@ -10,6 +10,7 @@
 #include <cy/cyTriMesh.h>
 #include <cy/cyMatrix.h>
 #include <glm/glm.hpp>
+#include <glm/common.hpp>
 
 GLuint VAO;
 GLuint VBO;
@@ -60,7 +61,7 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	assert( glGetError() == GL_NO_ERROR );
 }
 
-void InitializeGL()
+void InitializeTrimesh()
 {
 	if (!g_triMesh.LoadFromFileObj( "content/teapot.objt" ))
 	{
@@ -71,6 +72,10 @@ void InitializeGL()
 	{
 		fprintf( stdout, "Loaded the teapot.obj successfully.\n" );
 	}
+	if (!g_triMesh.IsBoundBoxReady())
+	{
+		g_triMesh.ComputeBoundingBox();
+	}
 
 	glGenVertexArrays( 1, &VAO );
 	std::vector<cyVec3f> vertices;
@@ -80,6 +85,7 @@ void InitializeGL()
 	}
 	glBindVertexArray( VAO );
 	assert( glGetError() == GL_NO_ERROR );
+
 	// For vertex data
 	glGenBuffers( 1, &VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO );
@@ -168,8 +174,23 @@ void UpdateCamera()
 	auto mat_modelToProjection = cyMatrix4f( 1.0f );
 
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-	mat_view.SetTranslation( cyVec3f( 0, 0, -camera_distance ) );
-	mat_perspective.SetPerspective( glm::radians( 45.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
+
+	auto cameraTarget = cyVec3f( 0, 0, 0 );
+	auto cameraPosition = cyVec3f( 0, 0, camera_distance );
+	auto cameraDir = (cameraTarget - cameraPosition).GetNormalized();
+	auto worldUp = cyVec3f( 0, 1, 0 );
+	auto cameraRight = worldUp.Cross( cameraDir ).GetNormalized();
+	auto cameraUp = cameraDir.Cross( cameraRight ).GetNormalized();
+	auto mat_cameraRotation = cyMatrix4f( 1.0f );
+	mat_cameraRotation.SetRow( 0, cameraRight.x, cameraRight.y, cameraRight.z, 0 );
+	mat_cameraRotation.SetRow( 1, cameraUp.x, cameraUp.y, cameraUp.z, 0 );
+	mat_cameraRotation.SetRow( 2, cameraDir.x, cameraDir.y, cameraDir.z, 0 );
+	mat_cameraRotation.SetRow( 3, 0, 0, 0, 1 );
+	auto mat_cameraTranslation = cyMatrix4f( 1.0f );
+	mat_cameraTranslation.SetTranslation( cameraPosition );
+	mat_view = mat_cameraRotation * mat_cameraTranslation;
+
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	unsigned int modelToProjection = glGetUniformLocation( g_shaderProgram.GetID(), "mat_modelToProjection" );
@@ -300,7 +321,7 @@ int main( void )
 	}
 
 	CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
-	InitializeGL();
+	InitializeTrimesh();
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
