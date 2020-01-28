@@ -226,7 +226,22 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 	// Get a new camera distance
 	if (right_mouseBtn_drag)
 	{
-
+		static cyVec2d _cachedRightMousePos( 0, 0 );
+		double pos_x;
+		double pos_y;
+		glfwGetCursorPos( i_pWindow, &pos_x, &pos_y );
+		auto pos_mouse = cyVec2d( pos_x, pos_y );
+		auto dis = _cachedRightMousePos - pos_mouse;
+		dis.Normalize();
+		_cachedRightMousePos = pos_mouse;
+		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
+		{
+			camera_distance -= 0.3f;
+		}
+		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
+		{
+			camera_distance += 0.3f;
+		}
 	}
 	// Get a new camera rotation
 	if (left_mouseBtn_drag)
@@ -235,7 +250,6 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		double pos_x;
 		double pos_y;
 		glfwGetCursorPos( i_pWindow, &pos_x, &pos_y );
-		fprintf( stdout, "The mouse position is %.3f, %.3f\n", pos_x, pos_y );
 		auto pos_mouse = cyVec2d( pos_x, pos_y );
 		auto dis = _cachedLeftMousePos - pos_mouse;
 		dis.Normalize();
@@ -243,11 +257,11 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		// Rotate around yaw
 		if (dis.Dot( cyVec2d( 1, 0 ) ) > 0)
 		{
-			camera_angle_yaw -= 0.2f;
+			camera_angle_yaw -= 0.3f;
 		}
 		else if (dis.Dot( cyVec2d( 1, 0 ) ) < 0)
 		{
-			camera_angle_yaw += 0.2f;
+			camera_angle_yaw += 0.3f;
 		}
 		// Rotate around the pitch
 		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
