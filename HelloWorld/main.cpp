@@ -82,19 +82,32 @@ void InitializeTrimesh( const char* i_objFileName )
 
 	glGenVertexArrays( 1, &VAO );
 	std::vector<cyVec3f> vertices;
+	std::vector<cyVec3f> vertexNormals;
 	for (size_t i = 0; i < g_triMesh.NV(); i++)
 	{
 		vertices.push_back( g_triMesh.V( i ) );
 	}
+	for (size_t i = 0; i < g_triMesh.NVN(); i++)
+	{
+		vertexNormals.push_back( g_triMesh.VN( i ) );
+	}
 	glBindVertexArray( VAO );
 	assert( glGetError() == GL_NO_ERROR );
-
-	// For vertex data
+	const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
+	const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
+	// For vertex data buffer
 	glGenBuffers( 1, &VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO );
-	glBufferData( GL_ARRAY_BUFFER, static_cast <GLsizei>(sizeof( cyVec3f ) * g_triMesh.NV()), reinterpret_cast<void*>(vertices.data()), GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast <GLsizei>(sizeof( cyVec3f )), (void*)0 );
+	glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, NULL, GL_STATIC_DRAW );
+	glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
+	glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
+
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast <GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
+	glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
+
 	glEnableVertexAttribArray( 0 );
+	glEnableVertexAttribArray( 1 );
+
 	assert( glGetError() == GL_NO_ERROR );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
