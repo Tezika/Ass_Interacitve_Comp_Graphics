@@ -137,7 +137,7 @@ void Display()
 	{
 		// Black is usually used
 		{
-			glClearColor( 0, 0, 0.2, 0 );
+			glClearColor( 0, 0, 0, 0 );
 			assert( glGetError() == GL_NO_ERROR );
 		}
 		{
@@ -171,6 +171,7 @@ void Display()
 		glBindVertexArray( VAO );
 		assert( glGetError() == GL_NO_ERROR );
 	}
+
 	// Draw elements
 	{
 		const GLvoid* const offset = 0;
@@ -335,7 +336,7 @@ int main( int argc, char* argv[] )
 		glfwTerminate();
 		return -1;
 	}
-	glfwWindowHint( GLFW_DEPTH_BITS, GL_FALSE );
+	glfwWindowHint( GLFW_DEPTH_BITS, GLFW_TRUE );
 	// Register the mouse and keyboard callback.
 	glfwSetMouseButtonCallback( pWindow, MouseButtonCallback );
 	glfwSetKeyCallback( pWindow, KeyboardCallback );
