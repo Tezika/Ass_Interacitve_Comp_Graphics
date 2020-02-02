@@ -102,7 +102,7 @@ void InitializeTrimesh( const char* i_objFileName )
 	glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
 	glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
 
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast <GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
 	glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
 
 	glEnableVertexAttribArray( 0 );
@@ -188,6 +188,7 @@ void UpdateCamera()
 	auto mat_view = cyMatrix4f( 1.0f );
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	auto mat_modelToProjection = cyMatrix4f( 1.0f );
+	auto mat_modelToView = cyMatrix4f( 1.0f );
 
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 
@@ -210,9 +211,13 @@ void UpdateCamera()
 
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
+	mat_modelToView = mat_view * mat_model;
 
 	unsigned int modelToProjection = glGetUniformLocation( g_shaderProgram.GetID(), "mat_modelToProjection" );
 	glUniformMatrix4fv( modelToProjection, 1, GL_FALSE, mat_modelToProjection.cell );
+
+	unsigned int modelToView = glGetUniformLocation( g_shaderProgram.GetID(), "mat_modelToView" );
+	glUniformMatrix4fv( modelToView, 1, GL_FALSE, mat_modelToView.cell );
 	assert( glGetError() == GL_NO_ERROR );
 }
 

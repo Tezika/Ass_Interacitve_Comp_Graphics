@@ -5,8 +5,12 @@
 // The locations assigned are arbitrary
 // but must match the C calls to glVertexAttribPointer()
 layout( location = 0 ) in vec3 i_vertexPosition_local;
+layout( location = 1 ) in vec3 i_surfaceNormalPosition_local;
 
 uniform mat4 mat_modelToProjection;
+uniform mat4 mat_modelToView;
+
+out vec4 vertexNormalPositionInView;
 
 // Output
 //=======
@@ -21,4 +25,5 @@ uniform mat4 mat_modelToProjection;
 void main()
 {
 	 gl_Position =  mat_modelToProjection * vec4(i_vertexPosition_local, 1);
+	 vertexNormalPositionInView = mat_modelToView * vec4(i_surfaceNormalPosition_local, 1);
 }
