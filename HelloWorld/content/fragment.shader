@@ -14,16 +14,9 @@ void main()
 {
 	vec4 up = vec4(0, 1, 0, 0);
 	vec4 right = vec4(1, 0, 0, 0);
-    if(dot( vertexNormalPositionInView, right ) > 0)
-	{
-		o_color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
-	}
-	else if(dot( vertexNormalPositionInView, up ) > 0)
-	{
-		o_color = vec4(0.0f, 1.0f, 0.0f, 1.0f);
-	}
-	else
-	{
-		o_color = vec4(0.0f, 0.0f, 1.0f, 1.0f);
-	}
+	float g = dot( vertexNormalPositionInView, up );
+	g = clamp(g, 0, 1);
+	float r = dot( vertexNormalPositionInView, right);
+	r = clamp(r, 0, 1);
+	o_color = vec4(r, g, 1.0f, 1.0f);
 }

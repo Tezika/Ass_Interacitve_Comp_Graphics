@@ -210,8 +210,9 @@ void UpdateCamera()
 	mat_view = mat_cameraRotation * mat_cameraTranslation;
 
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
-	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 	mat_modelToView = mat_view * mat_model;
+	mat_modelToView = mat_modelToView.GetInverse().GetTranspose();
+	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	unsigned int modelToProjection = glGetUniformLocation( g_shaderProgram.GetID(), "mat_modelToProjection" );
 	glUniformMatrix4fv( modelToProjection, 1, GL_FALSE, mat_modelToProjection.cell );
@@ -334,7 +335,7 @@ int main( int argc, char* argv[] )
 		glfwTerminate();
 		return -1;
 	}
-	glfwWindowHint( GLFW_DEPTH_BITS, GL_TRUE );
+	glfwWindowHint( GLFW_DEPTH_BITS, GL_FALSE );
 	// Register the mouse and keyboard callback.
 	glfwSetMouseButtonCallback( pWindow, MouseButtonCallback );
 	glfwSetKeyCallback( pWindow, KeyboardCallback );
