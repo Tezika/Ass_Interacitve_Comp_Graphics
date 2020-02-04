@@ -174,6 +174,7 @@ void Display()
 
 	// Draw elements
 	{
+
 		const GLvoid* const offset = 0;
 		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
 		assert( glGetError() == GL_NO_ERROR );
@@ -212,7 +213,7 @@ void UpdateCamera()
 
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
 	mat_modelToView = mat_view * mat_model;
-	mat_modelToView = mat_modelToView.GetInverse().GetTranspose();
+	auto mat_normalMatToView = mat_modelToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	unsigned int modelToProjection = glGetUniformLocation( g_shaderProgram.GetID(), "mat_modelToProjection" );
@@ -220,6 +221,10 @@ void UpdateCamera()
 
 	unsigned int modelToView = glGetUniformLocation( g_shaderProgram.GetID(), "mat_modelToView" );
 	glUniformMatrix4fv( modelToView, 1, GL_FALSE, mat_modelToView.cell );
+	assert( glGetError() == GL_NO_ERROR );
+
+	unsigned int normalModelToView = glGetUniformLocation( g_shaderProgram.GetID(), "mat_normalModelToView" );
+	glUniformMatrix4fv( normalModelToView, 1, GL_FALSE, mat_normalMatToView.cell );
 	assert( glGetError() == GL_NO_ERROR );
 }
 
@@ -349,7 +354,7 @@ int main( int argc, char* argv[] )
 		/* Problem: glewInit failed, something is seriously wrong. */
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
-
+	glEnable( GL_DEPTH_TEST );
 	CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
 	InitializeTrimesh( argv[1] );
 

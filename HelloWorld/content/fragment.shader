@@ -13,11 +13,11 @@ out vec4 o_color;
 
 void main()
 {
-	vec4 vertexPosition = vec4(-vertexPositionInView.x, -vertexPositionInView.y, -vertexPositionInView.z, 1);
-	if(dot(vertexNormalPositionInView, vertexPosition) < 0)
-	{
-		discard;
-	}
+	//vec4 vertexPosition = vec4(-vertexPositionInView.x, -vertexPositionInView.y, -vertexPositionInView.z, 1);
+	//if(dot(vertexNormalPositionInView, vertexPosition) < 0)
+	//{
+		//discard;
+	//}
 	vec4 up = vec4(0, 1, 0, 0);
 	vec4 right = vec4(1, 0, 0, 0);
 	float g = dot( vertexNormalPositionInView, up );
