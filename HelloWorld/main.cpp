@@ -37,6 +37,9 @@ float light_angle_pitch = 0.0f;
 constexpr float Screen_Width = 640;
 constexpr float Screen_Height = 480;
 
+constexpr char const*  path_vertexShader = "content/shaders/vertex.shader";
+constexpr char const*  path_fragmentShader = "content/shaders/fragment.shader";
+
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
 
@@ -47,7 +50,7 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	assert( glGetError() == GL_NO_ERROR );
 	i_glslProgram.CreateProgram();
 	assert( glGetError() == GL_NO_ERROR );
-	if (!g_vertexShader.CompileFile( "content/vertex.shader", GL_VERTEX_SHADER ))
+	if (!g_vertexShader.CompileFile( i_path_vertexShader, GL_VERTEX_SHADER ))
 	{
 		fprintf( stderr, "Failed to compile the vertex shader.\n" );
 	}
@@ -241,13 +244,12 @@ void UpdateCamera()
 	glUniformMatrix4fv( lightTransformation, 1, GL_FALSE, mat_light.cell );
 }
 
-
 void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
 {
 	assert( i_pWindow );
 	if (i_key == GLFW_KEY_F6 && i_action == GLFW_PRESS)
 	{
-		CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
+		CompileShaders( path_vertexShader, path_fragmentShader, g_shaderProgram );
 	}
 	if (i_key == GLFW_KEY_LEFT_CONTROL )
 	{
@@ -408,7 +410,7 @@ int main( int argc, char* argv[] )
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
 	glEnable( GL_DEPTH_TEST );
-	CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
+	CompileShaders( path_vertexShader, path_fragmentShader, g_shaderProgram );
 	InitializeTrimesh( argv[1] );
 
 	while (!glfwWindowShouldClose( pWindow ))
