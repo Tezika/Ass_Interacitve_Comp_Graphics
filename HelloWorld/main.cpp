@@ -226,6 +226,9 @@ void UpdateCamera()
 	unsigned int normalModelToView = glGetUniformLocation( g_shaderProgram.GetID(), "mat_normalModelToView" );
 	glUniformMatrix4fv( normalModelToView, 1, GL_FALSE, mat_normalMatToView.cell );
 	assert( glGetError() == GL_NO_ERROR );
+
+	unsigned int lightPosition = glGetUniformLocation( g_shaderProgram.GetID(), "lightPosition" );
+	glUniform3f( lightPosition, 1, 1, 1 );
 }
 
 

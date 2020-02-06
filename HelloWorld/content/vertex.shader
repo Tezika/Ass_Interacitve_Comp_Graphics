@@ -10,11 +10,11 @@ layout( location = 1 ) in vec3 i_vertexNormalPosition_local;
 uniform mat4 mat_modelToProjection;
 uniform mat4 mat_normalModelToView;
 uniform mat4 mat_modelToView;
-// uniform vec3 lightPosition;
+uniform vec3 lightPosition;
 
-out vec4 vertexNormalPositionInView;
-out vec4 vertexPositionInView;
-// out vec4 lightPositionInView;
+out vec3 normalInterp;
+out vec3 vertexPos;
+out vec4 lightPositionInView;
 
 // Output
 //=======
@@ -28,8 +28,10 @@ out vec4 vertexPositionInView;
 
 void main()
 {
-	 gl_Position =  mat_modelToProjection * vec4(i_vertexPosition_local, 1);
-	 vertexNormalPositionInView = mat_normalModelToView * vec4(i_vertexNormalPosition_local, 1);
-	 vertexPositionInView = mat_modelToView * vec4(i_vertexPosition_local, 1);
-	//  lightPositionInVivew = mat_modelToView * vec4(lightPosition, 1);
+	gl_Position =  mat_modelToProjection * vec4(i_vertexPosition_local, 1);
+	vec4 normalInterp4 = mat_normalModelToView * vec4(i_vertexNormalPosition_local, 1);
+	normalInterp = vec3(normalInterp4) / normalInterp4.w;
+	vec4 vertexPos4 = mat_modelToView * vec4(i_vertexPosition_local, 1);
+	vertexPos = vec3(vertexPos4) / vertexPos4.w;
+	lightPositionInView = mat_modelToView * vec4(lightPosition, 1);
 }
