@@ -116,8 +116,8 @@ void InitializeTrimesh( const char* i_objFileName )
 	glEnableVertexAttribArray( 0 );
 	glEnableVertexAttribArray( 1 );
 
-	assert( glGetError() == GL_NO_ERROR );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	assert( glGetError() == GL_NO_ERROR );
 
 	// For element data
 	glGenBuffers( 1, &EBO );
@@ -331,7 +331,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 			}
 			else
 			{
-				light_angle_yaw += rotation_yaw;
+				light_angle_yaw -= rotation_yaw;
 			}
 			
 		}
@@ -343,7 +343,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 			}
 			else
 			{
-				light_angle_yaw -= rotation_yaw;
+				light_angle_yaw += rotation_yaw;
 			}
 		}
 		// Rotate around the pitch
@@ -355,7 +355,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 			}
 			else
 			{
-				light_angle_pitch += rotation_pitch;
+				light_angle_pitch -= rotation_pitch;
 			}
 		}
 		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
@@ -366,7 +366,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 			}
 			else
 			{
-				light_angle_pitch -= rotation_pitch;
+				light_angle_pitch += rotation_pitch;
 			}
 		}
 	}
