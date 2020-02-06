@@ -6,10 +6,9 @@
 // will determine the color of the corresponding pixel on the screen
 in  vec3 normalInterp; 
 in  vec3 vertexPos;
-in  vec4 lightPositionInView;
+in  vec3 lightPos;
 out vec4 o_color;
 
-const vec3 lightPos = vec3(1.0, 1.0, 1.0);
 const vec3 diffuseColor = vec3(0.5, 0.0, 0.0);
 const vec3 specColor = vec3(1.0, 1.0, 1.0);
 const vec3 ambientColor = vec3(0.1, 0.0, 0.0);

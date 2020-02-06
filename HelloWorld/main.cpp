@@ -22,9 +22,17 @@ cyGLSLShader g_fragmentShader;
 
 cyTriMesh g_triMesh;
 
+bool bRotateLight = false;
+
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 90.0f;
 float camera_distance = 50.0f;
+
+float rotation_yaw = 0.3f;
+float rotation_pitch = 0.2f;
+
+float light_angle_yaw = 0.0f;
+float light_angle_pitch = 0.0f;
 
 constexpr float Screen_Width = 640;
 constexpr float Screen_Height = 480;
@@ -187,12 +195,14 @@ void UpdateCamera()
 	g_shaderProgram.Bind();
 
 	auto mat_model = cyMatrix4f( 1.0f );
+	auto mat_light = cyMatrix4f( 1.0f );
 	auto mat_view = cyMatrix4f( 1.0f );
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	auto mat_modelToProjection = cyMatrix4f( 1.0f );
 	auto mat_modelToView = cyMatrix4f( 1.0f );
 
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+	mat_light.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
 
 	auto cameraTarget = (g_triMesh.GetBoundMax() + g_triMesh.GetBoundMin()) / 2;
 	auto cameraPosition = cyVec3f( 0, 0, camera_distance );
@@ -227,8 +237,8 @@ void UpdateCamera()
 	glUniformMatrix4fv( normalModelToView, 1, GL_FALSE, mat_normalMatToView.cell );
 	assert( glGetError() == GL_NO_ERROR );
 
-	unsigned int lightPosition = glGetUniformLocation( g_shaderProgram.GetID(), "lightPosition" );
-	glUniform3f( lightPosition, 1, 1, 1 );
+	unsigned int lightTransformation = glGetUniformLocation( g_shaderProgram.GetID(), "mat_lightTransformation" );
+	glUniformMatrix4fv( lightTransformation, 1, GL_FALSE, mat_light.cell );
 }
 
 
@@ -238,6 +248,17 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 	if (i_key == GLFW_KEY_F6 && i_action == GLFW_PRESS)
 	{
 		CompileShaders( "content/vertex.shader", "content/fragment.shader", g_shaderProgram );
+	}
+	if (i_key == GLFW_KEY_LEFT_CONTROL )
+	{
+		if (i_action == GLFW_PRESS)
+		{
+			bRotateLight = true;
+		}
+		else if (i_action == GLFW_RELEASE)
+		{
+			bRotateLight = false;
+		}
 	}
 }
 
@@ -304,20 +325,49 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		// Rotate around yaw
 		if (dis.Dot( cyVec2d( 1, 0 ) ) > 0)
 		{
-			camera_angle_yaw -= 0.3f;
+			if (!bRotateLight)
+			{
+				camera_angle_yaw -= rotation_yaw;
+			}
+			else
+			{
+				light_angle_yaw += rotation_yaw;
+			}
+			
 		}
 		else if (dis.Dot( cyVec2d( 1, 0 ) ) < 0)
 		{
-			camera_angle_yaw += 0.3f;
+			if (!bRotateLight)
+			{
+				camera_angle_yaw += rotation_yaw;
+			}
+			else
+			{
+				light_angle_yaw -= rotation_yaw;
+			}
 		}
 		// Rotate around the pitch
 		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
 		{
-			camera_angle_pitch -= 0.2f;
+			if (!bRotateLight)
+			{
+				camera_angle_pitch -= rotation_pitch;
+			}
+			else
+			{
+				light_angle_pitch += rotation_pitch;
+			}
 		}
 		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
 		{
-			camera_angle_pitch += 0.2f;
+			if (!bRotateLight)
+			{
+				camera_angle_pitch += rotation_pitch;
+			}
+			else
+			{
+				light_angle_pitch -= rotation_pitch;
+			}
 		}
 	}
 }
