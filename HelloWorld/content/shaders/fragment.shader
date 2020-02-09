@@ -20,18 +20,17 @@ const vec3 ambientColor = vec3(0.1, 0.0, 0.0);
 
 void main()
 {
-	// vec3 normal = normalize(normalInterp);
-	// vec3 lightDir = normalize(lightPos - vertexPos);
-	// float lambertian = max(dot(lightDir,normal), 0.0);
-	// float specular = 0;
-	// if(lambertian > 0)
-	// {
-	// 	// Blinn - Phong
-	// 	vec3 viewDir = normalize(-vertexPos);
-	// 	vec3 halfDir = normalize( lightPos + viewDir);
-	// 	float specAngle = max(dot(halfDir, normal), 0.0);
-	// 	specular = pow(specAngle, 16.0);
-	// }
-	// o_color = vec4(ambientColor + lambertian * diffuseColor + specular * specColor, 1.0);
-	   o_color = texture(texture1, texCoord);
+	vec3 normal = normalize(normalInterp);
+	vec3 lightDir = normalize(lightPos - vertexPos);
+	float lambertian = max(dot(lightDir,normal), 0.0);
+	float specular = 0;
+	if(lambertian > 0)
+	{
+		// Blinn - Phong
+		vec3 viewDir = normalize(-vertexPos);
+		vec3 halfDir = normalize( lightPos + viewDir);
+		float specAngle = max(dot(halfDir, normal), 0.0);
+		specular = pow(specAngle, 16.0);
+	}
+	o_color = texture(texture1, texCoord) * vec4(ambientColor + lambertian * diffuseColor + specular * specColor, 1.0);
 }

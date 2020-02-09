@@ -136,25 +136,32 @@ void InitializeTrimesh( const char* i_objFileName )
 	std::vector<cyVec3f> vertices;
 	std::vector<cyVec3f> vertexNormals;
 	std::vector<cyVec2f> texCoords;
-	for (int i = 0; i < g_triMesh.NV(); i++)
+	//for (int i = 0; i < g_triMesh.NV(); i++)
+	//{
+	//	vertices.push_back( g_triMesh.V( i ) );
+	//}
+	for (size_t i = 0; i < g_triMesh.NF(); i++)
 	{
-		vertices.push_back( g_triMesh.V( i ) );
+		auto triFace = g_triMesh.F( i );
+		for (size_t j = 0; j < 3; j++)
+		{
+			vertices.push_back( g_triMesh.V( triFace.v[j] ) );
+		}
 	}
-	for (int i = 0; i < g_triMesh.NVN(); i++)
+	for (int i = 0; i < g_triMesh.NF(); i++)
 	{
-		//auto curNormalFace = g_triMesh.FN( i );
-		//for (int j = 0; j < 3; j++)
-		//{
-		//	vertexNormals.push_back( g_triMesh.VN( curNormalFace.v[j] ) );
-		//}
-		vertexNormals.push_back( g_triMesh.VN( i ) );
+		auto curNormalFace = g_triMesh.FN( i );
+		for (int j = 0; j < 3; j++)
+		{
+			vertexNormals.push_back( g_triMesh.VN( curNormalFace.v[j] ) );
+		}
 	}
 	for (int i = 0; i < g_triMesh.NF(); i++)
 	{
 		auto curTexFace = g_triMesh.FT( i );
 		for (int j = 0; j < 3; j++)
 		{
-			texCoords.push_back( g_triMesh.VT( curTexFace.v[j] ).XY());
+			texCoords.push_back( g_triMesh.VT( curTexFace.v[j] ).XY() );
 		}
 	}
 	glBindVertexArray( VAO );
@@ -249,8 +256,8 @@ void Display()
 	// Draw elements
 	{
 		const GLvoid* const offset = 0;
-		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
-		//glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF());
+		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
