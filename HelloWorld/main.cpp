@@ -16,6 +16,7 @@
 GLuint VAO;
 GLuint VBO;
 GLuint EBO;
+GLuint TEX;
 
 cyGLSLProgram g_shaderProgram;
 cyGLSLShader g_vertexShader;
@@ -88,7 +89,29 @@ void LoadTextureData( const char* i_textureName, std::vector<unsigned char>& io_
 	{
 		fprintf( stdout, "Loaded the %s texture successfully.", i_textureName );
 	}
-	assert( errorCode == 0 );
+}
+
+void InitializeTextures()
+{
+	glGenTextures( 1, &TEX );
+	glBindTexture( GL_TEXTURE_2D, TEX );
+
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+	unsigned int tex_width;
+	unsigned int tex_height;
+	std::vector<unsigned char> tex_data;
+	LoadTextureData( g_triMesh.M( 0 ).map_Kd, tex_data, tex_width, tex_height );
+	if (tex_data.data())
+	{
+		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGB, GL_UNSIGNED_BYTE, tex_data.data() );
+		glGenerateMipmap( GL_TEXTURE_2D );
+	}
+	g_shaderProgram.Bind();
+	glUniform1i( glGetUniformLocation( g_shaderProgram.GetID(), "texture1" ), 0 );
 }
 
 void InitializeTrimesh( const char* i_objFileName )
@@ -102,45 +125,50 @@ void InitializeTrimesh( const char* i_objFileName )
 	}
 	else
 	{
-		fprintf( stdout, "Loaded the %s successfully.\n", i_objFileName);
+		fprintf( stdout, "Loaded the %s successfully.\n", i_objFileName );
 	}
 	if (!g_triMesh.IsBoundBoxReady())
 	{
 		g_triMesh.ComputeBoundingBox();
 	}
 	// Load texture data
-	unsigned int tex_width;
-	unsigned int tex_height;
-	std::vector<unsigned char> tex_data;
-	LoadTextureData( g_triMesh.M( 0 ).map_Kd, tex_data, tex_width, tex_height );
+
 	glGenVertexArrays( 1, &VAO );
 	std::vector<cyVec3f> vertices;
 	std::vector<cyVec3f> vertexNormals;
-	for (size_t i = 0; i < g_triMesh.NV(); i++)
+	std::vector<cyVec2f> texCoords;
+	for (int i = 0; i < g_triMesh.NV(); i++)
 	{
 		vertices.push_back( g_triMesh.V( i ) );
 	}
-	for (size_t i = 0; i < g_triMesh.NVN(); i++)
+	for (int i = 0; i < g_triMesh.NVN(); i++)
 	{
 		vertexNormals.push_back( g_triMesh.VN( i ) );
+	}
+	for (int i = 0; i < g_triMesh.NVT(); i++)
+	{
+		texCoords.push_back( g_triMesh.VT( i ).XY() );
 	}
 	glBindVertexArray( VAO );
 	assert( glGetError() == GL_NO_ERROR );
 	const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
 	const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
-	const auto sizeOfTexCord = static_cast<GLsizei>()
+	const auto sizeOfTexCoord = static_cast<GLsizei>(texCoords.size() * sizeof( cyVec2f ));
 	// For vertex data buffer
 	glGenBuffers( 1, &VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO );
-	glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, NULL, GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals + sizeOfTexCoord, NULL, GL_STATIC_DRAW );
 	glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
 	glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
+	glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, sizeOfTexCoord, reinterpret_cast<void*>(texCoords.data()) );
 
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
 	glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
+	glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec2f )), (const GLvoid*)(sizeOfVertices + sizeOfNormals) );
 
 	glEnableVertexAttribArray( 0 );
 	glEnableVertexAttribArray( 1 );
+	glEnableVertexAttribArray( 2 );
 
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	assert( glGetError() == GL_NO_ERROR );
@@ -204,11 +232,12 @@ void Display()
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( VAO );
 		assert( glGetError() == GL_NO_ERROR );
+		glBindTexture( GL_TEXTURE_2D, TEX );
+		assert( glGetError() == GL_NO_ERROR );
 	}
 
 	// Draw elements
 	{
-
 		const GLvoid* const offset = 0;
 		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
 		assert( glGetError() == GL_NO_ERROR );
@@ -433,8 +462,10 @@ int main( int argc, char* argv[] )
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
 	glEnable( GL_DEPTH_TEST );
+	glEnable( GL_TEXTURE_2D );
 	CompileShaders( path_vertexShader, path_fragmentShader, g_shaderProgram );
 	InitializeTrimesh( argv[1] );
+	InitializeTextures();
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
@@ -449,10 +480,9 @@ int main( int argc, char* argv[] )
 	// Release buffers and the shader program.
 	{
 		glDeleteVertexArrays( 1, &VAO );
-		assert( glGetError() == GL_NO_ERROR );
 		glDeleteBuffers( 1, &VBO );
-		assert( glGetError() == GL_NO_ERROR );
 		glDeleteBuffers( 1, &EBO );
+		glDeleteTextures( 1, &TEX );
 		assert( glGetError() == GL_NO_ERROR );
 		g_vertexShader.Delete();
 		g_fragmentShader.Delete();

@@ -6,6 +6,7 @@
 // but must match the C calls to glVertexAttribPointer()
 layout( location = 0 ) in vec3 i_vertexPosition_local;
 layout( location = 1 ) in vec3 i_vertexNormalPosition_local;
+layout (location = 2)  in vec2 i_texCoord;
 
 uniform mat4 mat_modelToProjection;
 uniform mat4 mat_normalModelToView;
@@ -16,6 +17,7 @@ const vec3 light_pos = vec3(1.0f, 1.0f, 1.0f);
 out vec3 normalInterp;
 out vec3 vertexPos;
 out vec3 lightPos;
+out vec2 texCoord;
 
 // Output
 //=======
@@ -36,4 +38,5 @@ void main()
 	vertexPos = vec3(vertexPos4) / vertexPos4.w;
 	vec4 lightPos4 = mat_lightTransformation * vec4(light_pos, 1.0);
 	lightPos = vec3(lightPos4)/lightPos4.w;
+	texCoord = i_texCoord;
 }
