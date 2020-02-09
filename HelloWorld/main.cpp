@@ -75,9 +75,9 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 void InitializeTrimesh( const char* i_objFileName )
 {
 	std::string path_objFile;
-	path_objFile += "content/";
+	path_objFile += "content/teapot/";
 	path_objFile += i_objFileName;
-	if (!g_triMesh.LoadFromFileObj( path_objFile.c_str() ))
+	if (!g_triMesh.LoadFromFileObj( path_objFile.c_str(),true ))
 	{
 		fprintf( stderr, "Failed to load the %s.\n", path_objFile.c_str() );
 		assert( false );
@@ -90,7 +90,7 @@ void InitializeTrimesh( const char* i_objFileName )
 	{
 		g_triMesh.ComputeBoundingBox();
 	}
-
+	fprintf( stdout, "The material count is %d", g_triMesh.NM() );
 	glGenVertexArrays( 1, &VAO );
 	std::vector<cyVec3f> vertices;
 	std::vector<cyVec3f> vertexNormals;
