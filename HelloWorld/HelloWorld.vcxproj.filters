@@ -3,17 +3,17 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="lodepng.cpp">
-      <Filter>LoadPNG</Filter>
+      <Filter>LodePNG</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="LoadPNG">
+    <Filter Include="LodePNG">
       <UniqueIdentifier>{17f65e3b-27d3-45eb-9f5a-90f55baaae58}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lodepng.h">
-      <Filter>LoadPNG</Filter>
+      <Filter>LodePNG</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

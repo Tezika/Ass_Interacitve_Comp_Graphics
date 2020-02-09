@@ -41,6 +41,8 @@ constexpr float Screen_Height = 480;
 constexpr char const* path_vertexShader = "content/shaders/vertex.shader";
 constexpr char const* path_fragmentShader = "content/shaders/fragment.shader";
 
+constexpr char const* path_teapotResource = "content/teapot/";
+
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
 
@@ -75,29 +77,42 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 
 void LoadTextureData( const char* i_textureName, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
 {
-	auto erroCode = lodepng::decode( io_data, io_width, io_height, i_textureName );
-	if (erroCode) std::cout << "decoder error " << erroCode << ": " << lodepng_error_text( erroCode ) << std::endl;
+	std::string pathForTexture( path_teapotResource );
+	pathForTexture += i_textureName;
+	auto errorCode = lodepng::decode( io_data, io_width, io_height, pathForTexture );
+	if (errorCode)
+	{
+		fprintf( stderr, "decoder error %d : %s", errorCode, lodepng_error_text( errorCode ) );
+	}
+	else
+	{
+		fprintf( stdout, "Loaded the %s texture successfully.", i_textureName );
+	}
+	assert( errorCode == 0 );
 }
 
 void InitializeTrimesh( const char* i_objFileName )
 {
-	std::string path_objFile;
-	path_objFile += "content/teapot/";
+	std::string path_objFile( path_teapotResource );
 	path_objFile += i_objFileName;
 	if (!g_triMesh.LoadFromFileObj( path_objFile.c_str(), true ))
 	{
-		fprintf( stderr, "Failed to load the %s.\n", path_objFile.c_str() );
+		fprintf( stderr, "Failed to load the %s.\n", i_objFileName );
 		assert( false );
 	}
 	else
 	{
-		fprintf( stdout, "Loaded the %s successfully.\n", path_objFile.c_str() );
+		fprintf( stdout, "Loaded the %s successfully.\n", i_objFileName);
 	}
 	if (!g_triMesh.IsBoundBoxReady())
 	{
 		g_triMesh.ComputeBoundingBox();
 	}
-	fprintf( stdout, "The material count is %d", g_triMesh.NM() );
+	// Load texture data
+	unsigned int tex_width;
+	unsigned int tex_height;
+	std::vector<unsigned char> tex_data;
+	LoadTextureData( g_triMesh.M( 0 ).map_Kd, tex_data, tex_width, tex_height );
 	glGenVertexArrays( 1, &VAO );
 	std::vector<cyVec3f> vertices;
 	std::vector<cyVec3f> vertexNormals;
@@ -113,6 +128,7 @@ void InitializeTrimesh( const char* i_objFileName )
 	assert( glGetError() == GL_NO_ERROR );
 	const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
 	const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
+	const auto sizeOfTexCord = static_cast<GLsizei>()
 	// For vertex data buffer
 	glGenBuffers( 1, &VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO );
