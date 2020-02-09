@@ -2,7 +2,6 @@
 #pragma warning(disable : 4996)
 // Fixed the wingdi 100 errors by adding the windows header file.
 #include <windows.h>
-
 #include <GL/glew.h>
 #include <cy/cyGL.h>
 #include <GLFW/glfw3.h>
@@ -11,6 +10,8 @@
 #include <cy/cyMatrix.h>
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
+#include "lodepng.h"
+
 
 GLuint VAO;
 GLuint VBO;
@@ -37,8 +38,8 @@ float light_angle_pitch = 0.0f;
 constexpr float Screen_Width = 640;
 constexpr float Screen_Height = 480;
 
-constexpr char const*  path_vertexShader = "content/shaders/vertex.shader";
-constexpr char const*  path_fragmentShader = "content/shaders/fragment.shader";
+constexpr char const* path_vertexShader = "content/shaders/vertex.shader";
+constexpr char const* path_fragmentShader = "content/shaders/fragment.shader";
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
@@ -72,12 +73,18 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	assert( glGetError() == GL_NO_ERROR );
 }
 
+void LoadTextureData( const char* i_textureName, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
+{
+	auto erroCode = lodepng::decode( io_data, io_width, io_height, i_textureName );
+	if (erroCode) std::cout << "decoder error " << erroCode << ": " << lodepng_error_text( erroCode ) << std::endl;
+}
+
 void InitializeTrimesh( const char* i_objFileName )
 {
 	std::string path_objFile;
 	path_objFile += "content/teapot/";
 	path_objFile += i_objFileName;
-	if (!g_triMesh.LoadFromFileObj( path_objFile.c_str(),true ))
+	if (!g_triMesh.LoadFromFileObj( path_objFile.c_str(), true ))
 	{
 		fprintf( stderr, "Failed to load the %s.\n", path_objFile.c_str() );
 		assert( false );
@@ -251,7 +258,7 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 	{
 		CompileShaders( path_vertexShader, path_fragmentShader, g_shaderProgram );
 	}
-	if (i_key == GLFW_KEY_LEFT_CONTROL )
+	if (i_key == GLFW_KEY_LEFT_CONTROL)
 	{
 		if (i_action == GLFW_PRESS)
 		{
@@ -335,7 +342,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 			{
 				light_angle_yaw -= rotation_yaw;
 			}
-			
+
 		}
 		else if (dis.Dot( cyVec2d( 1, 0 ) ) < 0)
 		{

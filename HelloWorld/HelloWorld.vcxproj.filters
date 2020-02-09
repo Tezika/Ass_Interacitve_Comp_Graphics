@@ -2,5 +2,18 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="lodepng.cpp">
+      <Filter>LoadPNG</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="LoadPNG">
+      <UniqueIdentifier>{17f65e3b-27d3-45eb-9f5a-90f55baaae58}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lodepng.h">
+      <Filter>LoadPNG</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
