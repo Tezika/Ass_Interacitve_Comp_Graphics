@@ -32,6 +32,6 @@ void main()
 	// 	float specAngle = max(dot(halfDir, normal), 0.0);
 	// 	specular = pow(specAngle, 16.0);
 	// }
-	//   o_color = vec4(ambientColor + lambertian * diffuseColor + specular * specColor, 1.0);
-	o_color = texture(texture1, texCoord);
+	// o_color = vec4(ambientColor + lambertian * diffuseColor + specular * specColor, 1.0);
+	   o_color = texture(texture1, texCoord);
 }

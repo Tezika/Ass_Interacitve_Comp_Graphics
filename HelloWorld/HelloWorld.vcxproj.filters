@@ -5,6 +5,8 @@
     <ClCompile Include="lodepng.cpp">
       <Filter>LodePNG</Filter>
     </ClCompile>
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="LodePNG">
@@ -15,5 +17,7 @@
     <ClInclude Include="lodepng.h">
       <Filter>LodePNG</Filter>
     </ClInclude>
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="Camera.h" />
   </ItemGroup>
 </Project>

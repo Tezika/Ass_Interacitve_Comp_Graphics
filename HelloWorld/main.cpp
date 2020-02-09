@@ -12,7 +12,6 @@
 #include <glm/common.hpp>
 #include "lodepng.h"
 
-
 GLuint VAO;
 GLuint VBO;
 GLuint EBO;
@@ -87,7 +86,7 @@ void LoadTextureData( const char* i_textureName, std::vector<unsigned char>& io_
 	}
 	else
 	{
-		fprintf( stdout, "Loaded the %s texture successfully.", i_textureName );
+		fprintf( stdout, "Loaded/Decoded the %s texture successfully.", i_textureName );
 	}
 }
 
@@ -107,7 +106,7 @@ void InitializeTextures()
 	LoadTextureData( g_triMesh.M( 0 ).map_Kd, tex_data, tex_width, tex_height );
 	if (tex_data.data())
 	{
-		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGB, GL_UNSIGNED_BYTE, tex_data.data() );
+		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<void*>(tex_data.data()) );
 		glGenerateMipmap( GL_TEXTURE_2D );
 	}
 	g_shaderProgram.Bind();
@@ -143,11 +142,20 @@ void InitializeTrimesh( const char* i_objFileName )
 	}
 	for (int i = 0; i < g_triMesh.NVN(); i++)
 	{
+		//auto curNormalFace = g_triMesh.FN( i );
+		//for (int j = 0; j < 3; j++)
+		//{
+		//	vertexNormals.push_back( g_triMesh.VN( curNormalFace.v[j] ) );
+		//}
 		vertexNormals.push_back( g_triMesh.VN( i ) );
 	}
-	for (int i = 0; i < g_triMesh.NVT(); i++)
+	for (int i = 0; i < g_triMesh.NF(); i++)
 	{
-		texCoords.push_back( g_triMesh.VT( i ).XY() );
+		auto curTexFace = g_triMesh.FT( i );
+		for (int j = 0; j < 3; j++)
+		{
+			texCoords.push_back( g_triMesh.VT( curTexFace.v[j] ).XY());
+		}
 	}
 	glBindVertexArray( VAO );
 	assert( glGetError() == GL_NO_ERROR );
@@ -225,14 +233,16 @@ void Display()
 			assert( glGetError() == GL_NO_ERROR );
 		}
 	}
+	// Bind the textures to gl.
 	// Bind the shader program to gl.
 	// Bind the vertex array to gl.
 	{
+		glActiveTexture( GL_TEXTURE0 );
+		glBindTexture( GL_TEXTURE_2D, TEX );
+		assert( glGetError() == GL_NO_ERROR );
 		g_shaderProgram.Bind();
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( VAO );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindTexture( GL_TEXTURE_2D, TEX );
 		assert( glGetError() == GL_NO_ERROR );
 	}
 
@@ -240,6 +250,7 @@ void Display()
 	{
 		const GLvoid* const offset = 0;
 		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
+		//glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF());
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
