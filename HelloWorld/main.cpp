@@ -11,11 +11,14 @@
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include "lodepng.h"
+#include "Texture.h"
 
 GLuint VAO;
 GLuint VBO;
 GLuint EBO;
-GLuint TEX;
+
+Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
+Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 
 cyGLSLProgram g_shaderProgram;
 cyGLSLShader g_vertexShader;
@@ -75,42 +78,28 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	assert( glGetError() == GL_NO_ERROR );
 }
 
-void LoadTextureData( const char* i_textureName, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
-{
-	std::string pathForTexture( path_teapotResource );
-	pathForTexture += i_textureName;
-	auto errorCode = lodepng::decode( io_data, io_width, io_height, pathForTexture );
-	if (errorCode)
-	{
-		fprintf( stderr, "decoder error %d : %s", errorCode, lodepng_error_text( errorCode ) );
-	}
-	else
-	{
-		fprintf( stdout, "Loaded/Decoded the %s texture successfully.", i_textureName );
-	}
-}
 
 void InitializeTextures()
 {
-	glGenTextures( 1, &TEX );
-	glBindTexture( GL_TEXTURE_2D, TEX );
-
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-	unsigned int tex_width;
-	unsigned int tex_height;
-	std::vector<unsigned char> tex_data;
-	LoadTextureData( g_triMesh.M( 0 ).map_Kd, tex_data, tex_width, tex_height );
-	if (tex_data.data())
+	std::string path_diffusesTex( path_teapotResource );
+	path_diffusesTex += g_triMesh.M( 0 ).map_Kd;
+	pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
+	if (!pDiffuseTex)
 	{
-		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, tex_width, tex_height, 0, GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<void*>(tex_data.data()) );
-		glGenerateMipmap( GL_TEXTURE_2D );
+		fprintf( stderr, "Failed to create the diffuse texture.\n" );
+		assert( false );
+	}
+	std::string path_specularTex( path_teapotResource );
+	path_specularTex += g_triMesh.M( 0 ).map_Ks;
+	pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
+	if (!pSpecularTex)
+	{
+		fprintf( stderr, "Failed to create the specular texture.\n" );
+		assert( false );
 	}
 	g_shaderProgram.Bind();
 	glUniform1i( glGetUniformLocation( g_shaderProgram.GetID(), "texture1" ), 0 );
+	glUniform1i( glGetUniformLocation( g_shaderProgram.GetID(), "texture2" ), 1 );
 }
 
 void InitializeTrimesh( const char* i_objFileName )
@@ -140,10 +129,10 @@ void InitializeTrimesh( const char* i_objFileName )
 	//{
 	//	vertices.push_back( g_triMesh.V( i ) );
 	//}
-	for (size_t i = 0; i < g_triMesh.NF(); i++)
+	for (int i = 0; i < g_triMesh.NF(); i++)
 	{
 		auto triFace = g_triMesh.F( i );
-		for (size_t j = 0; j < 3; j++)
+		for (int j = 0; j < 3; j++)
 		{
 			vertices.push_back( g_triMesh.V( triFace.v[j] ) );
 		}
@@ -244,9 +233,8 @@ void Display()
 	// Bind the shader program to gl.
 	// Bind the vertex array to gl.
 	{
-		glActiveTexture( GL_TEXTURE0 );
-		glBindTexture( GL_TEXTURE_2D, TEX );
-		assert( glGetError() == GL_NO_ERROR );
+		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
+		pSpecularTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
 		g_shaderProgram.Bind();
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( VAO );
@@ -500,12 +488,13 @@ int main( int argc, char* argv[] )
 		glDeleteVertexArrays( 1, &VAO );
 		glDeleteBuffers( 1, &VBO );
 		glDeleteBuffers( 1, &EBO );
-		glDeleteTextures( 1, &TEX );
 		assert( glGetError() == GL_NO_ERROR );
 		g_vertexShader.Delete();
 		g_fragmentShader.Delete();
 		g_shaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
+		delete pDiffuseTex;
+		delete pSpecularTex;
 	}
 
 	glfwTerminate();

@@ -11,6 +11,7 @@ in  vec2 texCoord;
 out vec4 o_color;
 
 uniform sampler2D texture1;
+uniform sampler2D texture2;
 
 const vec3 diffuseColor = vec3(0.5, 0.0, 0.0);
 const vec3 specColor = vec3(1.0, 1.0, 1.0);
