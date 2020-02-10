@@ -78,12 +78,19 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	assert( glGetError() == GL_NO_ERROR );
 }
 
+void InitializeMaterial()
+{
+	g_shaderProgram.Bind();
+	glUniform3f( glGetUniformLocation( g_shaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
+	glUniform3f( glGetUniformLocation( g_shaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
+	glUniform3f( glGetUniformLocation( g_shaderProgram.GetID(), "specularColor"), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
+}
 
 void InitializeTextures()
 {
 	std::string path_diffusesTex( path_teapotResource );
 	path_diffusesTex += g_triMesh.M( 0 ).map_Kd;
-	pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
+	pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str());
 	if (!pDiffuseTex)
 	{
 		fprintf( stderr, "Failed to create the diffuse texture.\n" );
@@ -91,7 +98,7 @@ void InitializeTextures()
 	}
 	std::string path_specularTex( path_teapotResource );
 	path_specularTex += g_triMesh.M( 0 ).map_Ks;
-	pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
+	pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str());
 	if (!pSpecularTex)
 	{
 		fprintf( stderr, "Failed to create the specular texture.\n" );
@@ -102,7 +109,7 @@ void InitializeTextures()
 	glUniform1i( glGetUniformLocation( g_shaderProgram.GetID(), "texture2" ), 1 );
 }
 
-void InitializeTrimesh( const char* i_objFileName )
+void InitializeMesh( const char* i_objFileName )
 {
 	std::string path_objFile( path_teapotResource );
 	path_objFile += i_objFileName;
@@ -234,7 +241,7 @@ void Display()
 	// Bind the vertex array to gl.
 	{
 		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
-		pSpecularTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
+		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
 		g_shaderProgram.Bind();
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( VAO );
@@ -470,7 +477,8 @@ int main( int argc, char* argv[] )
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 	CompileShaders( path_vertexShader, path_fragmentShader, g_shaderProgram );
-	InitializeTrimesh( argv[1] );
+	InitializeMesh( argv[1] );
+	InitializeMaterial();
 	InitializeTextures();
 
 	while (!glfwWindowShouldClose( pWindow ))

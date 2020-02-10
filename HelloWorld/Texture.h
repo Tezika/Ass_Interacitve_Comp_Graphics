@@ -8,7 +8,7 @@ namespace Ass_Inter_Comp_Graphics
 	class Texture
 	{
 	public:
-		static Texture* Create( const char* i_pathForTex );
+		static Texture* Create( const char* i_pathForTexd );
 		inline GLuint GetTexId() const { return m_texId; };
 		void Bind( GLenum i_texUnit, GLenum i_texType );
 		~Texture();

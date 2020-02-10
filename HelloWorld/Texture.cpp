@@ -21,15 +21,12 @@ namespace
 Ass_Inter_Comp_Graphics::Texture* Ass_Inter_Comp_Graphics::Texture::Create( const char* i_pathForTex )
 {
 	auto* newTex = new Ass_Inter_Comp_Graphics::Texture();
-	static GLuint s_texId = 0;
-	newTex->m_texId = s_texId;
-	s_texId++;
 	glGenTextures( 1, &newTex->m_texId );
 	glBindTexture( GL_TEXTURE_2D, newTex->m_texId );
 
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
 	LoadTextureData( i_pathForTex, newTex->m_data, newTex->m_width, newTex->m_height );

@@ -10,12 +10,16 @@ in  vec3 lightPos;
 in  vec2 texCoord;
 out vec4 o_color;
 
+// For diffuse
 uniform sampler2D texture1;
+// For specular
 uniform sampler2D texture2;
 
-const vec3 diffuseColor = vec3(0.5, 0.0, 0.0);
-const vec3 specColor = vec3(1.0, 1.0, 1.0);
-const vec3 ambientColor = vec3(0.1, 0.0, 0.0);
+uniform vec3 diffuseColor;
+uniform vec3 ambientColor;
+uniform vec3 specularColor;
+uniform vec3 emitColor;
+
 // Entry Point
 //============
 
@@ -23,15 +27,18 @@ void main()
 {
 	vec3 normal = normalize(normalInterp);
 	vec3 lightDir = normalize(lightPos - vertexPos);
-	float lambertian = max(dot(lightDir,normal), 0.0);
-	float specular = 0;
-	if(lambertian > 0)
-	{
-		// Blinn - Phong
-		vec3 viewDir = normalize(-vertexPos);
-		vec3 halfDir = normalize( lightPos + viewDir);
-		float specAngle = max(dot(halfDir, normal), 0.0);
-		specular = pow(specAngle, 16.0);
-	}
-	o_color = texture(texture1, texCoord) * vec4(ambientColor + lambertian * diffuseColor + specular * specColor, 1.0);
+	float diff = max(dot(lightDir,normal), 0.0);
+
+	// Blinn - Phong
+	float spec = 0;
+	vec3 viewDir = normalize(-vertexPos);
+	vec3 halfDir = normalize( lightPos + viewDir);
+	float specAngle = max(dot(halfDir, normal), 0.0);
+	spec = pow(specAngle, 16.0);
+
+	vec3 ambient = ambientColor * vec3(texture(texture1, texCoord));
+	vec3 diffuse =  diffuseColor * diff * vec3(texture(texture1, texCoord));
+	vec3 specular = specularColor * spec * vec3( texture(texture2, texCoord));
+
+	o_color = vec4( ambient + diffuse + specular, 1);
 }
