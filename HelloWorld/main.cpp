@@ -32,8 +32,8 @@ float camera_angle_yaw = 0;
 float camera_angle_pitch = 90.0f;
 float camera_distance = 50.0f;
 
-float rotation_yaw = 1.0f;
-float rotation_pitch = 0.5f;
+float rotation_yaw = 2.0f;
+float rotation_pitch = 1.5f;
 
 float light_angle_yaw = 0.0f;
 float light_angle_pitch = 0.0f;
