@@ -15,5 +15,5 @@ uniform sampler2D tex_render;
 
 void main()
 {
-	o_color = vec4( vec3(texture(tex_render, texCoord), 1);
+	o_color = vec4( vec3(texture(tex_render, texCoord)), 1);
 }
