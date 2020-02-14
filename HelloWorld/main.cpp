@@ -13,9 +13,14 @@
 #include "lodepng.h"
 #include "Texture.h"
 
+//#define RENDER_TO_TEXTURE;
+
 GLuint VAO;
 GLuint VBO;
 GLuint EBO;
+
+GLuint VAO_renderTex;
+GLuint VBO_renderTex;
 
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
@@ -44,11 +49,10 @@ constexpr float Screen_Height = 480;
 constexpr char const* path_vertexShader_teapot = "content/shaders/vertex_teapot.shader";
 constexpr char const* path_fragmentShader_teapot = "content/shaders/fragment_teapot.shader";
 
-constexpr char const* path_vertexShader_renderTex;
-constexpr char const* path_fragmentShader_renderTex;
+constexpr char const* path_vertexShader_renderTex = "content/shaders/vertex_renderTex.shader";
+constexpr char const* path_fragmentShader_renderTex = "content/shaders/fragment_renderTex.shader";
 
 constexpr char const* path_teapotResource = "content/teapot/";
-
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
@@ -89,6 +93,11 @@ void InitializeMaterial()
 	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
 	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
 	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "specularColor"), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
+}
+
+void InitializeRenderTexture()
+{
+
 }
 
 void InitializeTextures()
@@ -250,6 +259,9 @@ void Display()
 		g_teapotShaderProgram.Bind();
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( VAO );
+#if defined(RENDER_TO_TEXTURE)
+		g_renderToTex2D.Bind();
+#endif
 		assert( glGetError() == GL_NO_ERROR );
 	}
 
@@ -261,6 +273,7 @@ void Display()
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
+
 }
 
 void UpdateCamera()
@@ -482,9 +495,18 @@ int main( int argc, char* argv[] )
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 	CompileShaders( path_vertexShader_teapot, path_fragmentShader_teapot, g_teapotShaderProgram );
+
+#if defined(RENDER_TO_TEXTURE)
+	CompileShaders(path_vertexShader_renderTex, path_fragmentShader_renderTex, g_renderTexShaderProgram);
+#endif
+
 	InitializeMesh( argv[1] );
 	InitializeMaterial();
 	InitializeTextures();
+
+#if defined(RENDER_TO_TEXTURE)
+	InitializeRenderTexture();
+#endif
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
