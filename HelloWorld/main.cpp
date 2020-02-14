@@ -58,6 +58,15 @@ constexpr char const* path_teapotResource = "content/teapot/";
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
 
+const GLfloat g_quad_vertex_buffer_data[] = {
+-1.0f, -1.0f, 0.0f,
+1.0f, -1.0f, 0.0f,
+-1.0f,  1.0f, 0.0f,
+-1.0f,  1.0f, 0.0f,
+1.0f, -1.0f, 0.0f,
+1.0f,  1.0f, 0.0f,
+};
+
 void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram )
 {
 	i_glslProgram.Delete();
@@ -106,21 +115,12 @@ void InitializeRenderTexture()
 
 	g_renderToTex2D.Resize(3, Screen_Width, Screen_Height);
 	// Generate the render to texture's vbo and vao
-	const GLfloat quad_vertex_buffer_data[] = {
-	-1.0f, -1.0f, 0.0f,
-	1.0f, -1.0f, 0.0f,
-	-1.0f,  1.0f, 0.0f,
-	-1.0f,  1.0f, 0.0f,
-	1.0f, -1.0f, 0.0f,
-	1.0f,  1.0f, 0.0f,
-	};
-
 	glGenVertexArrays(1, &VAO_renderTex);
 	glBindVertexArray(VAO_renderTex);
 	
 	glGenBuffers(1, &VBO_renderTex);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_renderTex);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertex_buffer_data), quad_vertex_buffer_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
 
 	CompileShaders(path_vertexShader_renderTex, path_fragmentShader_renderTex, g_renderTexShaderProgram);
 	g_renderTexShaderProgram.Bind();
@@ -276,30 +276,28 @@ void Display()
 			assert( glGetError() == GL_NO_ERROR );
 		}
 	}
-	// Bind the textures to gl.
 	// Bind the shader program to gl.
 	// Bind the vertex array to gl.
+	// Bind the textures to gl.
 	{
-		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
-		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
+		pDiffuseTex->Bind(GL_TEXTURE0, GL_TEXTURE_2D);
+		pSpecularTex->Bind(GL_TEXTURE1, GL_TEXTURE_2D);
 		g_teapotShaderProgram.Bind();
-		//g_renderTexShaderProgram.Bind();
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( VAO );
-#if defined(RENDER_TO_TEXTURE)
-		//g_renderToTex2D.Bind();
-#endif
-		assert( glGetError() == GL_NO_ERROR );
-	}
-
-	// Draw elements
-	{
+		glBindVertexArray(VAO);
 		const GLvoid* const offset = 0;
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
+#if defined(RENDER_TO_TEXTURE)
+		g_renderToTex2D.Bind();
+#endif
+		// Render the render texture;
+		g_renderTexShaderProgram.Bind();
+		glBindVertexArray(VAO_renderTex);
+		glDrawArrays(GL_TRIANGLES, 0, sizeof(g_quad_vertex_buffer_data));
+		assert(glGetError() == GL_NO_ERROR);
+		g_renderToTex2D.Unbind();
 	}
-
 }
 
 void UpdateCamera()
@@ -540,6 +538,7 @@ int main( int argc, char* argv[] )
 	}
 	// Release buffers and the shader program.
 	{
+
 		glDeleteVertexArrays( 1, &VAO );
 		glDeleteBuffers( 1, &VBO );
 		glDeleteBuffers( 1, &EBO );
@@ -553,8 +552,6 @@ int main( int argc, char* argv[] )
 		assert(glGetError() == GL_NO_ERROR);
 
 #if defined(RENDER_TO_TEXTURE)
-		//glBindVertexArray(VAO_renderTex);
-		//glBindBuffer(GL_ARRAY_BUFFER,VBO_renderTex);
 		glDeleteVertexArrays(1, &VAO_renderTex);
 		glDeleteBuffers(1, &VBO_renderTex);
 		g_renderTexShaderProgram.Delete();
