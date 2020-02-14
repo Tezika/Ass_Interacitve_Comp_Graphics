@@ -98,12 +98,35 @@ void InitializeMaterial()
 
 void InitializeRenderTexture()
 {
-#if defined(RENDER_TO_TEXTURE)
-	if (g_renderToTex2D.Initialize(true))
+	if (!g_renderToTex2D.Initialize(true))
 	{
-		g_renderToTex2D.Resize(3, Screen_Width, Screen_Height);
+		fprintf(stderr, "Cannot generate the renderToTexture.");
+		assert(false);
 	}
-#endif
+
+	g_renderToTex2D.Resize(3, Screen_Width, Screen_Height);
+	// Generate the render to texture's vbo and vao
+	const GLfloat quad_vertex_buffer_data[] = {
+	-1.0f, -1.0f, 0.0f,
+	1.0f, -1.0f, 0.0f,
+	-1.0f,  1.0f, 0.0f,
+	-1.0f,  1.0f, 0.0f,
+	1.0f, -1.0f, 0.0f,
+	1.0f,  1.0f, 0.0f,
+	};
+
+	glGenVertexArrays(1, &VAO_renderTex);
+	glBindVertexArray(VAO_renderTex);
+	
+	glGenBuffers(1, &VBO_renderTex);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_renderTex);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertex_buffer_data), quad_vertex_buffer_data, GL_STATIC_DRAW);
+
+	CompileShaders(path_vertexShader_renderTex, path_fragmentShader_renderTex, g_renderTexShaderProgram);
+
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER,0);
 }
 
 void InitializeTextures()
@@ -498,10 +521,6 @@ int main( int argc, char* argv[] )
 	glEnable( GL_TEXTURE_2D );
 	CompileShaders( path_vertexShader_teapot, path_fragmentShader_teapot, g_teapotShaderProgram );
 
-#if defined(RENDER_TO_TEXTURE)
-	CompileShaders(path_vertexShader_renderTex, path_fragmentShader_renderTex, g_renderTexShaderProgram);
-#endif
-
 	InitializeMesh( argv[1] );
 	InitializeMaterial();
 	InitializeTextures();
@@ -535,6 +554,12 @@ int main( int argc, char* argv[] )
 		pSpecularTex = nullptr;
 		g_renderToTex2D.Delete();
 		assert(glGetError() == GL_NO_ERROR);
+
+#if defined(RENDER_TO_TEXTURE)
+		glDeleteVertexArrays(1, &VAO_renderTex);
+		glDeleteBuffers(1, &VBO_renderTex);
+		assert(glGetError == GL_NO_ERROR);
+#endif
 	}
 
 	glfwTerminate();
