@@ -545,19 +545,21 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &EBO );
 		assert( glGetError() == GL_NO_ERROR );
 		g_teapotShaderProgram.Delete();
-		g_renderTexShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 		delete pDiffuseTex;
 		pDiffuseTex = nullptr;
 		delete pSpecularTex;
 		pSpecularTex = nullptr;
-		g_renderToTex2D.Delete();
 		assert(glGetError() == GL_NO_ERROR);
 
 #if defined(RENDER_TO_TEXTURE)
+		//glBindVertexArray(VAO_renderTex);
+		//glBindBuffer(GL_ARRAY_BUFFER,VBO_renderTex);
 		glDeleteVertexArrays(1, &VAO_renderTex);
 		glDeleteBuffers(1, &VBO_renderTex);
-		assert(glGetError == GL_NO_ERROR);
+		g_renderTexShaderProgram.Delete();
+		g_renderToTex2D.Delete();
+		assert(glGetError() == GL_NO_ERROR);
 #endif
 	}
 
