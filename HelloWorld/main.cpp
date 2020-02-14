@@ -13,7 +13,7 @@
 #include "lodepng.h"
 #include "Texture.h"
 
-//#define RENDER_TO_TEXTURE;
+#define RENDER_TO_TEXTURE
 
 GLuint VAO;
 GLuint VBO;
@@ -24,6 +24,7 @@ GLuint VBO_renderTex;
 
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
+
 cyGLRenderTexture2D g_renderToTex2D;
 
 cyGLSLProgram g_teapotShaderProgram;
@@ -81,9 +82,9 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	{
 		fprintf( stdout, "Compiled the fragment shader successfully.\n" );
 	}
-	g_teapotShaderProgram.AttachShader(vertexShader);
-	g_teapotShaderProgram.AttachShader(fragmentShader);
-	g_teapotShaderProgram.Link();
+	i_glslProgram.AttachShader(vertexShader);
+	i_glslProgram.AttachShader(fragmentShader);
+	i_glslProgram.Link();
 	assert( glGetError() == GL_NO_ERROR );
 }
 
@@ -97,7 +98,12 @@ void InitializeMaterial()
 
 void InitializeRenderTexture()
 {
-
+#if defined(RENDER_TO_TEXTURE)
+	if (g_renderToTex2D.Initialize(true))
+	{
+		g_renderToTex2D.Resize(3, Screen_Width, Screen_Height);
+	}
+#endif
 }
 
 void InitializeTextures()
@@ -146,10 +152,6 @@ void InitializeMesh( const char* i_objFileName )
 	std::vector<cyVec3f> vertices;
 	std::vector<cyVec3f> vertexNormals;
 	std::vector<cyVec2f> texCoords;
-	//for (int i = 0; i < g_triMesh.NV(); i++)
-	//{
-	//	vertices.push_back( g_triMesh.V( i ) );
-	//}
 	for (int i = 0; i < g_triMesh.NF(); i++)
 	{
 		auto triFace = g_triMesh.F( i );
@@ -260,7 +262,7 @@ void Display()
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( VAO );
 #if defined(RENDER_TO_TEXTURE)
-		g_renderToTex2D.Bind();
+		//g_renderToTex2D.Bind();
 #endif
 		assert( glGetError() == GL_NO_ERROR );
 	}
@@ -528,7 +530,11 @@ int main( int argc, char* argv[] )
 		g_renderTexShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 		delete pDiffuseTex;
+		pDiffuseTex = nullptr;
 		delete pSpecularTex;
+		pSpecularTex = nullptr;
+		g_renderToTex2D.Delete();
+		assert(glGetError() == GL_NO_ERROR);
 	}
 
 	glfwTerminate();
