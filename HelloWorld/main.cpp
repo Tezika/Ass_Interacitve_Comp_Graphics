@@ -19,10 +19,10 @@ GLuint EBO;
 
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
+cyGLRenderTexture2D g_renderToTex2D;
 
 cyGLSLProgram g_teapotShaderProgram;
 cyGLSLProgram g_renderTexShaderProgram;
-
 
 cyTriMesh g_triMesh;
 
@@ -41,10 +41,14 @@ float light_angle_pitch = 0.0f;
 constexpr float Screen_Width = 640;
 constexpr float Screen_Height = 480;
 
-constexpr char const* path_vertexShader = "content/shaders/teapot_vertex.shader";
-constexpr char const* path_fragmentShader = "content/shaders/teapot_fragment.shader";
+constexpr char const* path_vertexShader_teapot = "content/shaders/vertex_teapot.shader";
+constexpr char const* path_fragmentShader_teapot = "content/shaders/fragment_teapot.shader";
+
+constexpr char const* path_vertexShader_renderTex;
+constexpr char const* path_fragmentShader_renderTex;
 
 constexpr char const* path_teapotResource = "content/teapot/";
+
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
@@ -315,7 +319,7 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 	assert( i_pWindow );
 	if (i_key == GLFW_KEY_F6 && i_action == GLFW_PRESS)
 	{
-		CompileShaders( path_vertexShader, path_fragmentShader, g_teapotShaderProgram );
+		CompileShaders( path_vertexShader_teapot, path_fragmentShader_teapot, g_teapotShaderProgram );
 	}
 	if (i_key == GLFW_KEY_LEFT_CONTROL)
 	{
@@ -477,7 +481,7 @@ int main( int argc, char* argv[] )
 	}
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
-	CompileShaders( path_vertexShader, path_fragmentShader, g_teapotShaderProgram );
+	CompileShaders( path_vertexShader_teapot, path_fragmentShader_teapot, g_teapotShaderProgram );
 	InitializeMesh( argv[1] );
 	InitializeMaterial();
 	InitializeTextures();
