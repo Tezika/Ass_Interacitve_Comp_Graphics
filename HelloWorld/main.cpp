@@ -124,7 +124,7 @@ void InitializeRenderTexture()
 
 	CompileShaders(path_vertexShader_renderTex, path_fragmentShader_renderTex, g_renderTexShaderProgram);
 	g_renderTexShaderProgram.Bind();
-	glUniform1i(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "tex-render"), 0);
+	glUniform1i(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "tex_render"), 0);
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER,0);
@@ -283,7 +283,7 @@ void Display()
 		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
 		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
 		g_teapotShaderProgram.Bind();
-		g_renderTexShaderProgram.Bind();
+		//g_renderTexShaderProgram.Bind();
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( VAO );
 #if defined(RENDER_TO_TEXTURE)
@@ -295,7 +295,6 @@ void Display()
 	// Draw elements
 	{
 		const GLvoid* const offset = 0;
-		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(3 * g_triMesh.NF()), GL_UNSIGNED_INT, offset );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
@@ -305,9 +304,6 @@ void Display()
 
 void UpdateCamera()
 {
-	g_teapotShaderProgram.Bind();
-	g_renderTexShaderProgram.Bind();
-
 	auto mat_model = cyMatrix4f( 1.0f );
 	auto mat_light = cyMatrix4f( 1.0f );
 	auto mat_view = cyMatrix4f( 1.0f );
@@ -340,16 +336,19 @@ void UpdateCamera()
 	auto mat_normalMatToView = mat_modelToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
-	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell );
-	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell);
-	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell );
-	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell);
-	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell );
-	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell);
-	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_lightTransformation"), 1, GL_FALSE, mat_light.cell);
-	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_lightTransformation"), 1, GL_FALSE, mat_light.cell);
+	g_teapotShaderProgram.Bind();
 
+	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell );
+	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell );
+	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_lightTransformation"), 1, GL_FALSE, mat_light.cell);
 	assert( glGetError() == GL_NO_ERROR );
+
+	g_renderTexShaderProgram.Bind();
+	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell);
+	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell);
+	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell);
+	assert(glGetError() == GL_NO_ERROR);
 }
 
 void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
