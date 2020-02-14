@@ -288,15 +288,15 @@ void Display()
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
-#if defined(RENDER_TO_TEXTURE)
-		g_renderToTex2D.Bind();
-#endif
 		// Render the render texture;
-		g_renderTexShaderProgram.Bind();
-		glBindVertexArray(VAO_renderTex);
-		glDrawArrays(GL_TRIANGLES, 0, sizeof(g_quad_vertex_buffer_data));
-		assert(glGetError() == GL_NO_ERROR);
-		g_renderToTex2D.Unbind();
+//		g_renderTexShaderProgram.Bind();
+//#if defined(RENDER_TO_TEXTURE)
+//		g_renderToTex2D.Bind();
+//#endif
+//		glBindVertexArray(VAO_renderTex);
+//		glDrawArrays(GL_TRIANGLES, 0, sizeof(g_quad_vertex_buffer_data));
+//		assert(glGetError() == GL_NO_ERROR);
+//		g_renderToTex2D.Unbind();
 	}
 }
 
