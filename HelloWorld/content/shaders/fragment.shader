@@ -11,9 +11,9 @@ in  vec2 texCoord;
 out vec4 o_color;
 
 // For diffuse
-uniform sampler2D texture1;
+uniform sampler2D tex_diff;
 // For specular
-uniform sampler2D texture2;
+uniform sampler2D tex_spec;
 
 uniform vec3 diffuseColor;
 uniform vec3 ambientColor;
@@ -36,9 +36,9 @@ void main()
 	float specAngle = max(dot(halfDir, normal), 0.0);
 	spec = pow(specAngle, 16.0);
 
-	vec3 ambient = ambientColor * vec3(texture(texture1, texCoord));
-	vec3 diffuse =  diffuseColor * diff * vec3(texture(texture1, texCoord));
-	vec3 specular = specularColor * spec * vec3( texture(texture2, texCoord));
+	vec3 ambient = ambientColor * vec3(texture(tex_diff, texCoord));
+	vec3 diffuse =  diffuseColor * diff * vec3(texture(tex_diff, texCoord));
+	vec3 specular = specularColor * spec * vec3( texture(tex_spec, texCoord));
 
 	o_color = vec4( ambient + diffuse + specular, 1);
 }

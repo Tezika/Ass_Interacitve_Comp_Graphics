@@ -105,8 +105,8 @@ void InitializeTextures()
 		assert( false );
 	}
 	g_shaderProgram.Bind();
-	glUniform1i( glGetUniformLocation( g_shaderProgram.GetID(), "texture1" ), 0 );
-	glUniform1i( glGetUniformLocation( g_shaderProgram.GetID(), "texture2" ), 1 );
+	glUniform1i( glGetUniformLocation( g_shaderProgram.GetID(), "tex_diff" ), 0 );
+	glUniform1i( glGetUniformLocation( g_shaderProgram.GetID(), "tex_spec" ), 1 );
 }
 
 void InitializeMesh( const char* i_objFileName )
