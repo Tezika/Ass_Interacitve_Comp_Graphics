@@ -246,42 +246,6 @@ void InitializeMesh( const char* i_objFileName )
 
 void Display()
 {
-
-	//// Every frame an entirely new image will be created.
-	//// Before drawing anything, then, the previous image will be erased
-	//// by "clearing" the image buffer (filling it with a solid color)
-	//{
-	//	// Black is usually used
-	//	{
-	//		glClearColor( 0, 0, 0, 0 );
-	//		assert( glGetError() == GL_NO_ERROR );
-	//	}
-	//	{
-	//		constexpr GLbitfield clearColor = GL_COLOR_BUFFER_BIT;
-	//		glClear( clearColor );
-	//		assert( glGetError() == GL_NO_ERROR );
-	//	}
-	//}
-	//// In addition to the color buffer there is also a hidden image called the "depth buffer"
-	//// which is used to make it less important which order draw calls are made.
-	//// It must also be "cleared" every frame just like the visible color buffer.
-	//{
-	//	{
-	//		glDepthMask( GL_TRUE );
-	//		assert( glGetError() == GL_NO_ERROR );
-	//		constexpr GLclampd clearToFarDepth = 1.0;
-	//		glClearDepth( clearToFarDepth );
-	//		assert( glGetError() == GL_NO_ERROR );
-	//	}
-	//	{
-	//		constexpr GLbitfield clearDepth = GL_DEPTH_BUFFER_BIT;
-	//		glClear( clearDepth );
-	//		assert( glGetError() == GL_NO_ERROR );
-	//	}
-	//}
-	// Bind the shader program to gl.
-	// Bind the vertex array to gl.
-	// Bind the textures to gl.
 	{
 
 		// Render to the frame buffer
@@ -306,7 +270,6 @@ void Display()
 
 		// Clear the screen
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 		// Render the render texture;
 		g_renderTexShaderProgram.Bind();
 		glBindVertexArray(VAO_renderTex);
