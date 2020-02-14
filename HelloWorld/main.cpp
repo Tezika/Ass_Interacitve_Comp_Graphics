@@ -113,7 +113,7 @@ void InitializeRenderTexture()
 		assert(false);
 	}
 
-	g_renderToTex2D.Resize(3, Screen_Width, Screen_Height);
+	assert(g_renderToTex2D.Resize(3, Screen_Width, Screen_Height));
 	// Generate the render to texture's vbo and vao
 	glGenVertexArrays(1, &VAO_renderTex);
 	glBindVertexArray(VAO_renderTex);
@@ -121,6 +121,8 @@ void InitializeRenderTexture()
 	glGenBuffers(1, &VBO_renderTex);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_renderTex);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(0));
+	glEnableVertexAttribArray(0);
 
 	CompileShaders(path_vertexShader_renderTex, path_fragmentShader_renderTex, g_renderTexShaderProgram);
 	g_renderTexShaderProgram.Bind();
@@ -244,42 +246,51 @@ void InitializeMesh( const char* i_objFileName )
 
 void Display()
 {
-	// Every frame an entirely new image will be created.
-	// Before drawing anything, then, the previous image will be erased
-	// by "clearing" the image buffer (filling it with a solid color)
-	{
-		// Black is usually used
-		{
-			glClearColor( 0, 0, 0, 0 );
-			assert( glGetError() == GL_NO_ERROR );
-		}
-		{
-			constexpr GLbitfield clearColor = GL_COLOR_BUFFER_BIT;
-			glClear( clearColor );
-			assert( glGetError() == GL_NO_ERROR );
-		}
-	}
-	// In addition to the color buffer there is also a hidden image called the "depth buffer"
-	// which is used to make it less important which order draw calls are made.
-	// It must also be "cleared" every frame just like the visible color buffer.
-	{
-		{
-			glDepthMask( GL_TRUE );
-			assert( glGetError() == GL_NO_ERROR );
-			constexpr GLclampd clearToFarDepth = 1.0;
-			glClearDepth( clearToFarDepth );
-			assert( glGetError() == GL_NO_ERROR );
-		}
-		{
-			constexpr GLbitfield clearDepth = GL_DEPTH_BUFFER_BIT;
-			glClear( clearDepth );
-			assert( glGetError() == GL_NO_ERROR );
-		}
-	}
+
+	//// Every frame an entirely new image will be created.
+	//// Before drawing anything, then, the previous image will be erased
+	//// by "clearing" the image buffer (filling it with a solid color)
+	//{
+	//	// Black is usually used
+	//	{
+	//		glClearColor( 0, 0, 0, 0 );
+	//		assert( glGetError() == GL_NO_ERROR );
+	//	}
+	//	{
+	//		constexpr GLbitfield clearColor = GL_COLOR_BUFFER_BIT;
+	//		glClear( clearColor );
+	//		assert( glGetError() == GL_NO_ERROR );
+	//	}
+	//}
+	//// In addition to the color buffer there is also a hidden image called the "depth buffer"
+	//// which is used to make it less important which order draw calls are made.
+	//// It must also be "cleared" every frame just like the visible color buffer.
+	//{
+	//	{
+	//		glDepthMask( GL_TRUE );
+	//		assert( glGetError() == GL_NO_ERROR );
+	//		constexpr GLclampd clearToFarDepth = 1.0;
+	//		glClearDepth( clearToFarDepth );
+	//		assert( glGetError() == GL_NO_ERROR );
+	//	}
+	//	{
+	//		constexpr GLbitfield clearDepth = GL_DEPTH_BUFFER_BIT;
+	//		glClear( clearDepth );
+	//		assert( glGetError() == GL_NO_ERROR );
+	//	}
+	//}
 	// Bind the shader program to gl.
 	// Bind the vertex array to gl.
 	// Bind the textures to gl.
 	{
+
+		// Render to the frame buffer
+#if defined(RENDER_TO_TEXTURE)
+		g_renderToTex2D.Bind();
+#endif
+		// Clear the screen
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// Draw the scene
 		pDiffuseTex->Bind(GL_TEXTURE0, GL_TEXTURE_2D);
 		pSpecularTex->Bind(GL_TEXTURE1, GL_TEXTURE_2D);
 		g_teapotShaderProgram.Bind();
@@ -288,15 +299,21 @@ void Display()
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
+
+#if defined(RENDER_TO_TEXTURE)
+		g_renderToTex2D.Unbind();
+#endif
+
+		// Clear the screen
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		// Render the render texture;
-//		g_renderTexShaderProgram.Bind();
-//#if defined(RENDER_TO_TEXTURE)
-//		g_renderToTex2D.Bind();
-//#endif
-//		glBindVertexArray(VAO_renderTex);
-//		glDrawArrays(GL_TRIANGLES, 0, sizeof(g_quad_vertex_buffer_data));
-//		assert(glGetError() == GL_NO_ERROR);
-//		g_renderToTex2D.Unbind();
+		g_renderTexShaderProgram.Bind();
+		glBindVertexArray(VAO_renderTex);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, g_renderToTex2D.GetTextureID());
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		assert(glGetError() == GL_NO_ERROR);
 	}
 }
 
@@ -335,18 +352,11 @@ void UpdateCamera()
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	g_teapotShaderProgram.Bind();
-
 	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell );
 	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell );
 	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell );
 	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_lightTransformation"), 1, GL_FALSE, mat_light.cell);
 	assert( glGetError() == GL_NO_ERROR );
-
-	g_renderTexShaderProgram.Bind();
-	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell);
-	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell);
-	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell);
-	assert(glGetError() == GL_NO_ERROR);
 }
 
 void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )

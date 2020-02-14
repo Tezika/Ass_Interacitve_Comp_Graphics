@@ -4,16 +4,7 @@
 
 // The locations assigned are arbitrary
 // but must match the C calls to glVertexAttribPointer()
-layout( location = 0 ) in vec3 i_vertexPosition_local;
-layout( location = 1 ) in vec3 i_vertexNormalPosition_local;
-layout (location = 2)  in vec2 i_texCoord;
-
-uniform mat4 mat_modelToProjection;
-uniform mat4 mat_normalModelToView;
-uniform mat4 mat_modelToView;
-
-out vec3 normalInterp;
-out vec3 vertexPos;
+layout( location = 0 ) in vec3 i_vertexPosition_modelSpace;
 out vec2 texCoord;
 
 // Output
@@ -28,10 +19,6 @@ out vec2 texCoord;
 
 void main()
 {
-	gl_Position =  mat_modelToProjection * vec4(i_vertexPosition_local, 1);
-	vec4 normalInterp4 = mat_normalModelToView * vec4(i_vertexNormalPosition_local, 1);
-	normalInterp = vec3(normalInterp4) / normalInterp4.w;
-	vec4 vertexPos4 = mat_modelToView * vec4(i_vertexPosition_local, 1);
-	vertexPos = vec3(vertexPos4) / vertexPos4.w;
-	texCoord = i_texCoord;
+	gl_Position = vec4(i_vertexPosition_modelSpace, 1);
+	texCoord = (i_vertexPosition_modelSpace.xy - vec2(1,1))/2.0;
 }
