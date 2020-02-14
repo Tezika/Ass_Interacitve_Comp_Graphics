@@ -247,7 +247,6 @@ void InitializeMesh( const char* i_objFileName )
 void Display()
 {
 	{
-
 		// Render to the frame buffer
 #if defined(RENDER_TO_TEXTURE)
 		g_renderToTex2D.Bind();
