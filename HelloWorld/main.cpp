@@ -68,19 +68,19 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	cyGLSLShader fragmentShader;
 	if (!vertexShader.CompileFile( i_path_vertexShader, GL_VERTEX_SHADER ))
 	{
-		fprintf( stderr, "Failed to compile the vertex shader.\n" );
+		fprintf( stderr, "Failed to compile the vertex shader, %s.\n", i_path_vertexShader );
 	}
 	else
 	{
-		fprintf( stdout, "Compiled the vertex shader successfully.\n" );
+		fprintf( stdout, "Compiled the vertex shader, %s, successfully.\n", i_path_vertexShader);
 	}
 	if (!fragmentShader.CompileFile( i_path_fragementShader, GL_FRAGMENT_SHADER ))
 	{
-		fprintf( stderr, "Failed to compile the fragment shader.\n" );
+		fprintf( stderr, "Failed to compile the fragment shader, %s.\n", i_path_fragementShader);
 	}
 	else
 	{
-		fprintf( stdout, "Compiled the fragment shader successfully.\n" );
+		fprintf( stdout, "Compiled the fragment shader, %s, successfully.\n", i_path_fragementShader );
 	}
 	i_glslProgram.AttachShader(vertexShader);
 	i_glslProgram.AttachShader(fragmentShader);
@@ -123,7 +123,8 @@ void InitializeRenderTexture()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertex_buffer_data), quad_vertex_buffer_data, GL_STATIC_DRAW);
 
 	CompileShaders(path_vertexShader_renderTex, path_fragmentShader_renderTex, g_renderTexShaderProgram);
-
+	g_renderTexShaderProgram.Bind();
+	glUniform1i(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "tex-render"), 0);
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER,0);
@@ -282,6 +283,7 @@ void Display()
 		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
 		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
 		g_teapotShaderProgram.Bind();
+		g_renderTexShaderProgram.Bind();
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( VAO );
 #if defined(RENDER_TO_TEXTURE)
@@ -304,6 +306,7 @@ void Display()
 void UpdateCamera()
 {
 	g_teapotShaderProgram.Bind();
+	g_renderTexShaderProgram.Bind();
 
 	auto mat_model = cyMatrix4f( 1.0f );
 	auto mat_light = cyMatrix4f( 1.0f );
@@ -337,19 +340,16 @@ void UpdateCamera()
 	auto mat_normalMatToView = mat_modelToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
-	unsigned int modelToProjection = glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToProjection" );
-	glUniformMatrix4fv( modelToProjection, 1, GL_FALSE, mat_modelToProjection.cell );
+	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell );
+	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell);
+	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell );
+	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell);
+	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell);
+	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_lightTransformation"), 1, GL_FALSE, mat_light.cell);
+	glUniformMatrix4fv(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "mat_lightTransformation"), 1, GL_FALSE, mat_light.cell);
 
-	unsigned int modelToView = glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToView" );
-	glUniformMatrix4fv( modelToView, 1, GL_FALSE, mat_modelToView.cell );
 	assert( glGetError() == GL_NO_ERROR );
-
-	unsigned int normalModelToView = glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_normalModelToView" );
-	glUniformMatrix4fv( normalModelToView, 1, GL_FALSE, mat_normalMatToView.cell );
-	assert( glGetError() == GL_NO_ERROR );
-
-	unsigned int lightTransformation = glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_lightTransformation" );
-	glUniformMatrix4fv( lightTransformation, 1, GL_FALSE, mat_light.cell );
 }
 
 void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
