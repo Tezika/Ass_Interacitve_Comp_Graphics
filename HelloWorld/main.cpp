@@ -39,6 +39,10 @@ float camera_angle_yaw = 0;
 float camera_angle_pitch = 90.0f;
 float camera_distance = 50.0f;
 
+float rtt_angle_yaw = 0;
+float rtt_angle_pitch = 0;
+float rtt_dis = 0.0f;
+
 float rotation_yaw = 2.0f;
 float rotation_pitch = 1.5f;
 
@@ -284,7 +288,7 @@ void Display()
 	}
 }
 
-void UpdateCamera()
+void UpdateView()
 {
 	auto mat_model = cyMatrix4f( 1.0f );
 	auto mat_light = cyMatrix4f( 1.0f );
@@ -292,6 +296,8 @@ void UpdateCamera()
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	auto mat_modelToProjection = cyMatrix4f( 1.0f );
 	auto mat_modelToView = cyMatrix4f( 1.0f );
+	auto mat_rttTranslation = cyMatrix4f( 1.0f );
+	auto mat_rttRotation = cyMatrix4f( 1.0f );
 
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	mat_light.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
@@ -318,16 +324,17 @@ void UpdateCamera()
 	auto mat_normalMatToView = mat_modelToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
-	if (!bControlTheRtt)
-	{
-		g_teapotShaderProgram.Bind();
-		glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
-		glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
-		glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
-		glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	}
+	g_teapotShaderProgram.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+
 	g_rttShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_model.cell );
+	mat_rttRotation.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
+	mat_rttTranslation.SetTranslation( cyVec3f( 0, 0, rtt_dis ) );
+	auto mat_rtt = mat_rttRotation * mat_rttTranslation;
+	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_rtt" ), 1, GL_FALSE, mat_rtt.cell );
 
 	assert( glGetError() == GL_NO_ERROR );
 }
@@ -405,11 +412,26 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		_cachedRightMousePos = pos_mouse;
 		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
 		{
-			camera_distance -= 0.3f;
+			if (bControlTheRtt)
+			{
+				rtt_dis -= 0.01f;
+			}
+			else
+			{
+				camera_distance -= 0.3f;
+			}
+
 		}
 		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
 		{
-			camera_distance += 0.3f;
+			if (bControlTheRtt)
+			{
+				rtt_dis += 0.01f;
+			}
+			else
+			{
+				camera_distance += 0.3f;
+			}
 		}
 	}
 	// Get a new camera rotation
@@ -426,49 +448,78 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		// Rotate around yaw
 		if (dis.Dot( cyVec2d( 1, 0 ) ) > 0)
 		{
-			if (!bRotateLight)
+			if (bControlTheRtt)
 			{
-				camera_angle_yaw -= rotation_yaw;
+				rtt_angle_yaw -= rotation_yaw;
 			}
 			else
 			{
-				light_angle_yaw -= rotation_yaw;
+				if (!bRotateLight)
+				{
+					camera_angle_yaw -= rotation_yaw;
+				}
+				else
+				{
+					light_angle_yaw -= rotation_yaw;
+				}
 			}
-
 		}
 		else if (dis.Dot( cyVec2d( 1, 0 ) ) < 0)
 		{
-			if (!bRotateLight)
+			if (bControlTheRtt)
 			{
-				camera_angle_yaw += rotation_yaw;
+				rtt_angle_yaw += rotation_yaw;
 			}
 			else
 			{
-				light_angle_yaw += rotation_yaw;
+				if (!bRotateLight)
+				{
+					camera_angle_yaw += rotation_yaw;
+				}
+				else
+				{
+					light_angle_yaw += rotation_yaw;
+				}
 			}
 		}
+
 		// Rotate around the pitch
 		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
 		{
-			if (!bRotateLight)
+			if (bControlTheRtt)
 			{
-				camera_angle_pitch -= rotation_pitch;
+				rtt_angle_pitch -= rotation_pitch;
 			}
 			else
 			{
-				light_angle_pitch -= rotation_pitch;
+				if (!bRotateLight)
+				{
+					camera_angle_pitch -= rotation_pitch;
+				}
+				else
+				{
+					light_angle_pitch -= rotation_pitch;
+				}
 			}
 		}
 		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
 		{
-			if (!bRotateLight)
+			if (bControlTheRtt)
 			{
-				camera_angle_pitch += rotation_pitch;
+				rtt_angle_pitch += rotation_pitch;
 			}
 			else
 			{
-				light_angle_pitch += rotation_pitch;
+				if (!bRotateLight)
+				{
+					camera_angle_pitch += rotation_pitch;
+				}
+				else
+				{
+					light_angle_pitch += rotation_pitch;
+				}
 			}
+
 		}
 	}
 }
@@ -523,7 +574,7 @@ int main( int argc, char* argv[] )
 	while (!glfwWindowShouldClose( pWindow ))
 	{
 		UpdateMouseInput( pWindow );
-		UpdateCamera();
+		UpdateView();
 		Display();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
