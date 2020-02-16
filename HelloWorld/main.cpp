@@ -25,7 +25,7 @@ GLuint IBO_rtt;
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 
-cyGLRenderTexture2D g_rtt2D;
+cyGLRenderTexture2D g_rtt;
 
 cyGLSLProgram g_teapotShaderProgram;
 cyGLSLProgram g_rttShaderProgram;
@@ -122,13 +122,14 @@ void InitializeMaterial()
 
 void InitializeRenderTexture()
 {
-	if (!g_rtt2D.Initialize( true ))
+	if (!g_rtt.Initialize( true ))
 	{
 		fprintf( stderr, "Cannot generate the renderToTexture." );
 		assert( false );
 	}
-
-	assert( g_rtt2D.Resize( 3, Screen_Width, Screen_Height ) );
+	g_rtt.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR );
+	g_rtt.SetTextureMaxAnisotropy();
+	assert( g_rtt.Resize( 3, Screen_Width, Screen_Height ) );
 
 	CompileShaders( path_vertexShader_rtt, path_fragmentShader_rtt, g_rttShaderProgram );
 
@@ -256,7 +257,7 @@ void Display()
 	// Pass1 -  render the scene to the frame buffer
 	{
 #if defined(RENDER_TO_TEXTURE)
-		g_rtt2D.Bind();
+		g_rtt.Bind();
 #endif
 		// Clear the screen
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -271,7 +272,7 @@ void Display()
 		glBindVertexArray( 0 );
 
 #if defined(RENDER_TO_TEXTURE)
-		g_rtt2D.Unbind();
+		g_rtt.Unbind();
 #endif
 	}
 	// Pass2 - draw the render texture
@@ -281,7 +282,9 @@ void Display()
 		g_rttShaderProgram.Bind();
 		glUniform1i( glGetUniformLocation( g_rttShaderProgram.GetID(), "tex_render" ), 0 );
 		glActiveTexture( GL_TEXTURE0 );
-		glBindTexture( GL_TEXTURE_2D, g_rtt2D.GetTextureID() );
+		glBindTexture( GL_TEXTURE_2D, g_rtt.GetTextureID() );
+		g_rtt.BuildTextureMipmaps();
+		g_rtt.SetTextureMaxAnisotropy();
 		glBindVertexArray( VAO_rtt );
 		glDrawElements( GL_TRIANGLES, count_indices, GL_UNSIGNED_INT, 0 );
 		assert( glGetError() == GL_NO_ERROR );
@@ -600,7 +603,7 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &VBO_rtt );
 		glDeleteBuffers( 1, &IBO_rtt );
 		g_rttShaderProgram.Delete();
-		g_rtt2D.Delete();
+		g_rtt.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 #endif
 	}
