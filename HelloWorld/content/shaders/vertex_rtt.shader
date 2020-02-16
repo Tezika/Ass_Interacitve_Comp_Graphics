@@ -8,6 +8,7 @@ layout( location = 0 ) in vec3 i_vertexPosition_ndc;
 layout( location = 1)  in vec2 i_texCoord;
 out vec2 texCoord;
 
+uniform mat4 mat_modelToView;
 // Output
 //=======
 // layout( location = 1) out vec4 o_vertexColor;
@@ -20,6 +21,6 @@ out vec2 texCoord;
 
 void main()
 {
-	gl_Position = vec4(i_vertexPosition_ndc, 1);
+	gl_Position = mat_modelToView * vec4(i_vertexPosition_ndc, 1);
 	texCoord = i_texCoord;
 }

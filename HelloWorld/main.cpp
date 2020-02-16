@@ -33,6 +33,7 @@ cyGLSLProgram g_rttShaderProgram;
 cyTriMesh g_triMesh;
 
 bool bRotateLight = false;
+bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 90.0f;
@@ -250,7 +251,6 @@ void Display()
 {		
 	// Pass1 -  render the scene to the frame buffer
 	{
-
 #if defined(RENDER_TO_TEXTURE)
 		g_rtt2D.Bind();
 #endif
@@ -318,11 +318,17 @@ void UpdateCamera()
 	auto mat_normalMatToView = mat_modelToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
-	g_teapotShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+	if (!bControlTheRtt)
+	{
+		g_teapotShaderProgram.Bind();
+		glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
+		glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
+		glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+		glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+	}
+	g_rttShaderProgram.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_model.cell );
+
 	assert( glGetError() == GL_NO_ERROR );
 }
 
@@ -342,6 +348,17 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 		else if (i_action == GLFW_RELEASE)
 		{
 			bRotateLight = false;
+		}
+	}
+	if (i_key == GLFW_KEY_LEFT_ALT)
+	{
+		if (i_action == GLFW_PRESS)
+		{
+			bControlTheRtt = true;
+		}
+		else if (i_action == GLFW_RELEASE)
+		{
+			bControlTheRtt = false;
 		}
 	}
 }
