@@ -41,7 +41,7 @@ float camera_distance = 50.0f;
 
 float rtt_angle_yaw = 0;
 float rtt_angle_pitch = 0;
-float rtt_dis = 0.0f;
+float rtt_dis = 1.0f;
 
 float rotation_yaw = 2.0f;
 float rotation_pitch = 1.5f;
@@ -79,7 +79,6 @@ const unsigned int g_rtt_indices_data[] =
 };
 
 const unsigned int count_indices = 6;
-
 
 
 void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram )
@@ -335,10 +334,8 @@ void UpdateView()
 
 	g_rttShaderProgram.Bind();
 	mat_rttRotation.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
-	mat_rttTranslation.SetTranslation( cyVec3f( 0, 0, rtt_dis ) );
-	auto mat_rtt = mat_rttRotation * mat_rttTranslation;
-	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_rtt" ), 1, GL_FALSE, mat_rtt.cell );
-
+	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_rttRotation.cell );
+	glUniform1f( glGetUniformLocation( g_rttShaderProgram.GetID(), "dis" ), rtt_dis );
 	assert( glGetError() == GL_NO_ERROR );
 }
 
@@ -417,7 +414,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		{
 			if (bControlTheRtt)
 			{
-				rtt_dis -= 0.01f;
+				rtt_dis -= 0.05f;
 			}
 			else
 			{
@@ -429,7 +426,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		{
 			if (bControlTheRtt)
 			{
-				rtt_dis += 0.01f;
+				rtt_dis += 0.05f;
 			}
 			else
 			{

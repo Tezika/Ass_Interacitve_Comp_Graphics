@@ -8,7 +8,8 @@ layout( location = 0 ) in vec3 i_vertexPosition_ndc;
 layout( location = 1)  in vec2 i_texCoord;
 out vec2 texCoord;
 
-uniform mat4 mat_rtt;
+uniform mat4 mat_rttRot;
+uniform float dis;
 // Output
 //=======
 // layout( location = 1) out vec4 o_vertexColor;
@@ -21,6 +22,6 @@ uniform mat4 mat_rtt;
 
 void main()
 {
-	gl_Position = mat_rtt * vec4(i_vertexPosition_ndc, 1);
+	gl_Position = mat_rttRot * vec4(i_vertexPosition_ndc, dis);
 	texCoord = i_texCoord;
 }
