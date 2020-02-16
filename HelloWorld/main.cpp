@@ -17,18 +17,18 @@
 
 GLuint VAO;
 GLuint VBO;
-GLuint EBO;
 
-GLuint VAO_renderTex;
-GLuint VBO_renderTex;
+GLuint VAO_rtt;
+GLuint VBO_rtt;
+GLuint IBO_rtt;
 
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 
-cyGLRenderTexture2D g_renderToTex2D;
+cyGLRenderTexture2D g_rtt2D;
 
 cyGLSLProgram g_teapotShaderProgram;
-cyGLSLProgram g_renderTexShaderProgram;
+cyGLSLProgram g_rttShaderProgram;
 
 cyTriMesh g_triMesh;
 
@@ -50,22 +50,32 @@ constexpr float Screen_Height = 480;
 constexpr char const* path_vertexShader_teapot = "content/shaders/vertex_teapot.shader";
 constexpr char const* path_fragmentShader_teapot = "content/shaders/fragment_teapot.shader";
 
-constexpr char const* path_vertexShader_renderTex = "content/shaders/vertex_renderTex.shader";
-constexpr char const* path_fragmentShader_renderTex = "content/shaders/fragment_renderTex.shader";
+constexpr char const* path_vertexShader_rtt = "content/shaders/vertex_rtt.shader";
+constexpr char const* path_fragmentShader_rtt = "content/shaders/fragment_rtt.shader";
 
 constexpr char const* path_teapotResource = "content/teapot/";
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
 
-const GLfloat g_quad_vertex_buffer_data[] = {
--1.0f, -1.0f, 0.0f,
-1.0f, -1.0f, 0.0f,
--1.0f,  1.0f, 0.0f,
--1.0f,  1.0f, 0.0f,
-1.0f, -1.0f, 0.0f,
-1.0f,  1.0f, 0.0f,
+const GLfloat g_quad_buffer_data[] =
+{
+// ndc pos         // UV
+-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+0.5f, 0.5f, 0.0f,  1.0f, 1.0f,
+-0.5f, 0.5f, 0.0f,  0.0f, 1.0f
 };
+
+const unsigned int g_quad_indices_data[] =
+{
+	0,1,2,
+	2,3,0
+};
+
+const unsigned int count_indices = 6;
+
+
 
 void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram )
 {
@@ -81,18 +91,18 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	}
 	else
 	{
-		fprintf( stdout, "Compiled the vertex shader, %s, successfully.\n", i_path_vertexShader);
+		fprintf( stdout, "Compiled the vertex shader, %s, successfully.\n", i_path_vertexShader );
 	}
 	if (!fragmentShader.CompileFile( i_path_fragementShader, GL_FRAGMENT_SHADER ))
 	{
-		fprintf( stderr, "Failed to compile the fragment shader, %s.\n", i_path_fragementShader);
+		fprintf( stderr, "Failed to compile the fragment shader, %s.\n", i_path_fragementShader );
 	}
 	else
 	{
 		fprintf( stdout, "Compiled the fragment shader, %s, successfully.\n", i_path_fragementShader );
 	}
-	i_glslProgram.AttachShader(vertexShader);
-	i_glslProgram.AttachShader(fragmentShader);
+	i_glslProgram.AttachShader( vertexShader );
+	i_glslProgram.AttachShader( fragmentShader );
 	i_glslProgram.Link();
 	assert( glGetError() == GL_NO_ERROR );
 }
@@ -102,41 +112,47 @@ void InitializeMaterial()
 	g_teapotShaderProgram.Bind();
 	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
 	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
-	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "specularColor"), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
+	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "specularColor" ), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
 }
 
 void InitializeRenderTexture()
 {
-	if (!g_renderToTex2D.Initialize(true))
+	if (!g_rtt2D.Initialize( true ))
 	{
-		fprintf(stderr, "Cannot generate the renderToTexture.");
-		assert(false);
+		fprintf( stderr, "Cannot generate the renderToTexture." );
+		assert( false );
 	}
 
-	assert(g_renderToTex2D.Resize(3, Screen_Width, Screen_Height));
+	assert( g_rtt2D.Resize( 3, Screen_Width, Screen_Height ) );
+
+	CompileShaders( path_vertexShader_rtt, path_fragmentShader_rtt, g_rttShaderProgram );
+
 	// Generate the render to texture's vbo and vao
-	glGenVertexArrays(1, &VAO_renderTex);
-	glBindVertexArray(VAO_renderTex);
-	
-	glGenBuffers(1, &VBO_renderTex);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_renderTex);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(0));
-	glEnableVertexAttribArray(0);
+	glGenVertexArrays( 1, &VAO_rtt );
+	glBindVertexArray( VAO_rtt );
 
-	CompileShaders(path_vertexShader_renderTex, path_fragmentShader_renderTex, g_renderTexShaderProgram);
-	g_renderTexShaderProgram.Bind();
-	glUniform1i(glGetUniformLocation(g_renderTexShaderProgram.GetID(), "tex_render"), 0);
+	glGenBuffers( 1, &VBO_rtt );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO_rtt );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
+	glEnableVertexAttribArray( 0 );
+	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
+	glEnableVertexAttribArray( 1 );
 
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER,0);
+	glGenBuffers( 1, &IBO_rtt );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO_rtt );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(unsigned int) * count_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
+	assert( glGetError() == GL_NO_ERROR );
+
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 }
 
 void InitializeTextures()
 {
 	std::string path_diffusesTex( path_teapotResource );
 	path_diffusesTex += g_triMesh.M( 0 ).map_Kd;
-	pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str());
+	pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
 	if (!pDiffuseTex)
 	{
 		fprintf( stderr, "Failed to create the diffuse texture.\n" );
@@ -144,7 +160,7 @@ void InitializeTextures()
 	}
 	std::string path_specularTex( path_teapotResource );
 	path_specularTex += g_triMesh.M( 0 ).map_Ks;
-	pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str());
+	pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
 	if (!pSpecularTex)
 	{
 		fprintf( stderr, "Failed to create the specular texture.\n" );
@@ -226,56 +242,45 @@ void InitializeMesh( const char* i_objFileName )
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	assert( glGetError() == GL_NO_ERROR );
 
-	// For element data
-	glGenBuffers( 1, &EBO );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, EBO );
-	std::vector<unsigned int> indices;
-	for (size_t i = 0; i < g_triMesh.NF(); i++)
-	{
-		auto triFace = g_triMesh.F( i );
-		for (size_t j = 0; j < 3; j++)
-		{
-			indices.push_back( triFace.v[j] );
-		}
-	}
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast <GLsizeiptr>(sizeof( unsigned int ) * 3 * g_triMesh.NF()), reinterpret_cast<void*>(&indices[0]), GL_STATIC_DRAW );
-	assert( glGetError() == GL_NO_ERROR );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindVertexArray( 0 );
 }
 
 void Display()
-{
+{		
+	// Pass1 -  render the scene to the frame buffer
 	{
-		// Render to the frame buffer
+
 #if defined(RENDER_TO_TEXTURE)
-		g_renderToTex2D.Bind();
+		g_rtt2D.Bind();
 #endif
 		// Clear the screen
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		// Draw the scene
-		pDiffuseTex->Bind(GL_TEXTURE0, GL_TEXTURE_2D);
-		pSpecularTex->Bind(GL_TEXTURE1, GL_TEXTURE_2D);
+		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
+		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
 		g_teapotShaderProgram.Bind();
-		glBindVertexArray(VAO);
+		glBindVertexArray( VAO );
 		const GLvoid* const offset = 0;
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 
 #if defined(RENDER_TO_TEXTURE)
-		g_renderToTex2D.Unbind();
+		g_rtt2D.Unbind();
 #endif
-
+	}
+	// Pass2 - draw the render texture
+	{
 		// Clear the screen
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		// Render the render texture;
-		g_renderTexShaderProgram.Bind();
-		glBindVertexArray(VAO_renderTex);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, g_renderToTex2D.GetTextureID());
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		assert(glGetError() == GL_NO_ERROR);
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		g_rttShaderProgram.Bind();
+		glUniform1i( glGetUniformLocation( g_rttShaderProgram.GetID(), "tex_render" ), 0 );
+		glActiveTexture( GL_TEXTURE0 );
+		glBindTexture( GL_TEXTURE_2D, g_rtt2D.GetTextureID() );
+		glBindVertexArray( VAO_rtt );
+		glDrawElements( GL_TRIANGLES, count_indices, GL_UNSIGNED_INT, 0 );
+		assert( glGetError() == GL_NO_ERROR );
 	}
 }
 
@@ -314,10 +319,10 @@ void UpdateCamera()
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	g_teapotShaderProgram.Bind();
-	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToProjection"), 1, GL_FALSE, mat_modelToProjection.cell );
-	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_modelToView"), 1, GL_FALSE, mat_modelToView.cell );
-	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_normalModelToView"), 1, GL_FALSE, mat_normalMatToView.cell );
-	glUniformMatrix4fv(glGetUniformLocation(g_teapotShaderProgram.GetID(), "mat_lightTransformation"), 1, GL_FALSE, mat_light.cell);
+	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
 	assert( glGetError() == GL_NO_ERROR );
 }
 
@@ -513,7 +518,6 @@ int main( int argc, char* argv[] )
 
 		glDeleteVertexArrays( 1, &VAO );
 		glDeleteBuffers( 1, &VBO );
-		glDeleteBuffers( 1, &EBO );
 		assert( glGetError() == GL_NO_ERROR );
 		g_teapotShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
@@ -521,14 +525,14 @@ int main( int argc, char* argv[] )
 		pDiffuseTex = nullptr;
 		delete pSpecularTex;
 		pSpecularTex = nullptr;
-		assert(glGetError() == GL_NO_ERROR);
+		assert( glGetError() == GL_NO_ERROR );
 
 #if defined(RENDER_TO_TEXTURE)
-		glDeleteVertexArrays(1, &VAO_renderTex);
-		glDeleteBuffers(1, &VBO_renderTex);
-		g_renderTexShaderProgram.Delete();
-		g_renderToTex2D.Delete();
-		assert(glGetError() == GL_NO_ERROR);
+		glDeleteVertexArrays( 1, &VAO_rtt );
+		glDeleteBuffers( 1, &VBO_rtt );
+		g_rttShaderProgram.Delete();
+		g_rtt2D.Delete();
+		assert( glGetError() == GL_NO_ERROR );
 #endif
 	}
 

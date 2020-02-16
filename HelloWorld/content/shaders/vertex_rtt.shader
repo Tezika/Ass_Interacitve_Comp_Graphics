@@ -4,7 +4,8 @@
 
 // The locations assigned are arbitrary
 // but must match the C calls to glVertexAttribPointer()
-layout( location = 0 ) in vec3 i_vertexPosition_modelSpace;
+layout( location = 0 ) in vec3 i_vertexPosition_ndc;
+layout( location = 1)  in vec2 i_texCoord;
 out vec2 texCoord;
 
 // Output
@@ -19,6 +20,6 @@ out vec2 texCoord;
 
 void main()
 {
-	gl_Position = vec4(i_vertexPosition_modelSpace, 1);
-	texCoord = (i_vertexPosition_modelSpace.xy+vec2(1,1))/2.0;
+	gl_Position = vec4(i_vertexPosition_ndc, 1);
+	texCoord = i_texCoord;
 }
