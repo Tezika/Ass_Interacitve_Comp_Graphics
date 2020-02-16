@@ -59,7 +59,7 @@ constexpr char const* path_teapotResource = "content/teapot/";
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
 
-const GLfloat g_quad_buffer_data[] =
+const GLfloat g_rtt_buffer_data[] =
 {
 // ndc pos         // UV
 -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
@@ -68,7 +68,7 @@ const GLfloat g_quad_buffer_data[] =
 -0.5f, 0.5f, 0.0f,  0.0f, 1.0f
 };
 
-const unsigned int g_quad_indices_data[] =
+const unsigned int g_rtt_indices_data[] =
 {
 	0,1,2,
 	2,3,0
@@ -134,7 +134,7 @@ void InitializeRenderTexture()
 
 	glGenBuffers( 1, &VBO_rtt );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO_rtt );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( g_rtt_buffer_data ), g_rtt_buffer_data, GL_STATIC_DRAW );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
 	glEnableVertexAttribArray( 0 );
 	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
@@ -142,7 +142,7 @@ void InitializeRenderTexture()
 
 	glGenBuffers( 1, &IBO_rtt );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO_rtt );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(unsigned int) * count_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(unsigned int) * count_indices), &g_rtt_indices_data[0], GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
 
 	glBindVertexArray( 0 );
@@ -547,6 +547,7 @@ int main( int argc, char* argv[] )
 #if defined(RENDER_TO_TEXTURE)
 		glDeleteVertexArrays( 1, &VAO_rtt );
 		glDeleteBuffers( 1, &VBO_rtt );
+		glDeleteBuffers( 1, &IBO_rtt );
 		g_rttShaderProgram.Delete();
 		g_rtt2D.Delete();
 		assert( glGetError() == GL_NO_ERROR );
