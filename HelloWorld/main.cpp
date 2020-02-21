@@ -476,7 +476,8 @@ void UpdateView()
 
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
+	auto mat_view_mat4 = cyMatrix4f(cyMatrix3f(mat_view));
+	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view_mat4.cell);
 	glUniformMatrix4fv( glGetUniformLocation(g_skyboxShaderProgram.GetID(), "mat_proj"), 1, GL_FALSE, mat_perspective.cell);
 	assert( glGetError() == GL_NO_ERROR );
 #endif
