@@ -40,7 +40,7 @@ bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 90.0f;
-float camera_distance = 0.0f;
+float camera_distance = -50.0f;
 
 float rtt_angle_yaw = 0;
 float rtt_angle_pitch = 0;
@@ -400,27 +400,25 @@ void Display()
 		//glDepthFunc(GL_LESS);
 	}
 
-//	// Pass1 -  render the scene to the frame buffer
-//	{
-//#if defined(RENDER_TO_TEXTURE)
-//		g_rtt.Bind();
-//#endif
-//		// Clear the screen
-//		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-//		// Draw the scene
-//		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
-//		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
-//		g_teapotShaderProgram.Bind();
-//		glBindVertexArray( VAO );
-//		const GLvoid* const offset = 0;
-//		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
-//		assert( glGetError() == GL_NO_ERROR );
-//		glBindVertexArray( 0 );
-//
-//#if defined(RENDER_TO_TEXTURE)
-//		g_rtt.Unbind();
-//#endif
-//	}
+	// Pass1 -  render the scene to the frame buffer
+	{
+#if defined(RENDER_TO_TEXTURE)
+		g_rtt.Bind();
+#endif
+		// Draw the scene
+		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
+		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
+		g_teapotShaderProgram.Bind();
+		glBindVertexArray( VAO );
+		const GLvoid* const offset = 0;
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
+		assert( glGetError() == GL_NO_ERROR );
+		glBindVertexArray( 0 );
+
+#if defined(RENDER_TO_TEXTURE)
+		g_rtt.Unbind();
+#endif
+	}
 
 }
 
@@ -470,14 +468,14 @@ void UpdateView()
 	g_rttShaderProgram.Bind();
 	mat_rttRotation.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
 	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_rttRotation.cell );
-	glUniform1f( glGetUniformLocation( g_rttShaderProgram.GetID(), "dis" ), rtt_dis );
+	glUniform1f( glGetUniformLocation( g_rttShaderProgram.GetID(), "dis" ),s rtt_dis );
 	assert( glGetError() == GL_NO_ERROR );
 #endif
 
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
-	auto mat_view_mat4 = cyMatrix4f(cyMatrix3f(mat_view));
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view_mat4.cell);
+	auto mat4_view = cyMatrix4f(cyMatrix3f(mat_view));
+	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat4_view.cell);
 	glUniformMatrix4fv( glGetUniformLocation(g_skyboxShaderProgram.GetID(), "mat_proj"), 1, GL_FALSE, mat_perspective.cell);
 	assert( glGetError() == GL_NO_ERROR );
 #endif
