@@ -21,7 +21,7 @@ GLuint VAO;
 GLuint VBO;
 
 GLuint VAO_rtt;
-GLuint VBO_cubemap;
+GLuint VBO_rtt;
 GLuint IBO_rtt;
 
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
@@ -87,8 +87,8 @@ const unsigned int g_quad_indices_data[] =
 const unsigned int count_indices = 6;
 
 GLuint VAO_cubemap;
-GLuint VBO_cubeMap;
-GLuint Tex_cubeMap;
+GLuint VBO_cubemap;
+GLuint Tex_cubemap;
 
 const float g_skyboxVertices[] = {
 	// positions          
@@ -223,15 +223,15 @@ void InitializeSkyBox()
 		"content/cubemap/cubemap_posz.png",
 		"content/cubemap/cubemap_negz.png"
 	};
-	Tex_cubeMap = LoadCubemap( faces );
+	Tex_cubemap = LoadCubemap( faces );
 	// VAO, VBO
 	glGenVertexArrays( 1, &VAO_cubemap );
 	glBindVertexArray( VAO_cubemap );
 
 	CompileShaders( path_vertexShader_skybox, path_fragmentShader_skybox, g_skyboxShaderProgram );
 
-	glGenBuffers( 1, &VBO_cubeMap );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubeMap );
+	glGenBuffers( 1, &VBO_cubemap );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubemap );
 	glBufferData( GL_ARRAY_BUFFER, sizeof( g_skyboxVertices ), g_skyboxVertices, GL_STATIC_DRAW );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), (const GLvoid*)(0) );
 	glEnableVertexAttribArray( 0 );
@@ -265,8 +265,8 @@ void InitializeRenderTexture()
 	glGenVertexArrays( 1, &VAO_rtt );
 	glBindVertexArray( VAO_rtt );
 
-	glGenBuffers( 1, &VBO_cubemap );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubemap );
+	glGenBuffers( 1, &VBO_rtt );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO_rtt );
 	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
 	glEnableVertexAttribArray( 0 );
@@ -382,31 +382,39 @@ void InitializeMesh( const char* i_objFileName )
 
 void Display()
 {
-	// Pass1 -  render the scene to the frame buffer
-	{
-#if defined(RENDER_TO_TEXTURE)
-		g_rtt.Bind();
-#endif
-		// Clear the screen
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		// Draw the scene
-		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
-		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
-		g_teapotShaderProgram.Bind();
-		glBindVertexArray( VAO );
-		const GLvoid* const offset = 0;
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
-
-#if defined(RENDER_TO_TEXTURE)
-		g_rtt.Unbind();
-#endif
-	}
 	// Draw the skybox
 	{
-
+		glDepthMask( GL_FALSE );
+		g_skyboxShaderProgram.Bind();
+		// ... set view and projection matrix
+		glBindVertexArray( VAO_cubemap );
+		glBindTexture( GL_TEXTURE_CUBE_MAP, Tex_cubemap );
+		glDrawArrays( GL_TRIANGLES, 0, 36 );
+		glDepthMask( GL_TRUE );
 	}
+
+//	// Pass1 -  render the scene to the frame buffer
+//	{
+//#if defined(RENDER_TO_TEXTURE)
+//		g_rtt.Bind();
+//#endif
+//		// Clear the screen
+//		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+//		// Draw the scene
+//		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
+//		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
+//		g_teapotShaderProgram.Bind();
+//		glBindVertexArray( VAO );
+//		const GLvoid* const offset = 0;
+//		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
+//		assert( glGetError() == GL_NO_ERROR );
+//		glBindVertexArray( 0 );
+//
+//#if defined(RENDER_TO_TEXTURE)
+//		g_rtt.Unbind();
+//#endif
+//	}
+
 }
 
 void UpdateView()
@@ -456,6 +464,13 @@ void UpdateView()
 	mat_rttRotation.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
 	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_rttRotation.cell );
 	glUniform1f( glGetUniformLocation( g_rttShaderProgram.GetID(), "dis" ), rtt_dis );
+	assert( glGetError() == GL_NO_ERROR );
+#endif
+
+#if defined(RENDER_SKYBOX)
+	g_skyboxShaderProgram.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_proj" ), 1, GL_FALSE, mat_perspective.cell );
 	assert( glGetError() == GL_NO_ERROR );
 #endif
 }

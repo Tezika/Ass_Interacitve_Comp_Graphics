@@ -4,12 +4,11 @@
 
 // The locations assigned are arbitrary
 // but must match the C calls to glVertexAttribPointer()
-layout( location = 0 ) in vec3 i_vertexPosition_ndc;
-layout( location = 1)  in vec2 i_texCoord;
-out vec2 texCoord;
+layout( location = 0 ) in vec3 i_pos;
+out vec3 texCoord;
 
-uniform mat4 mat_rttRot;
-uniform float dis;
+uniform mat4 mat_view;
+uniform mat4 mat_proj;
 // Output
 //=======
 // layout( location = 1) out vec4 o_vertexColor;
@@ -22,6 +21,6 @@ uniform float dis;
 
 void main()
 {
-	gl_Position = mat_rttRot * vec4(i_vertexPosition_ndc, dis);
-	texCoord = i_texCoord;
+	gl_Position =  mat_proj * mat_view * vec4(i_pos, 1);
+	texCoord = i_pos;
 }
