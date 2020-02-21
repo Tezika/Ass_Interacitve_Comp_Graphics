@@ -419,7 +419,6 @@ void Display()
 		g_rtt.Unbind();
 #endif
 	}
-
 }
 
 void UpdateView()
@@ -474,6 +473,7 @@ void UpdateView()
 
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
+	// Removed the translation for the view matrix
 	auto mat4_view = cyMatrix4f(cyMatrix3f(mat_view));
 	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat4_view.cell);
 	glUniformMatrix4fv( glGetUniformLocation(g_skyboxShaderProgram.GetID(), "mat_proj"), 1, GL_FALSE, mat_perspective.cell);
