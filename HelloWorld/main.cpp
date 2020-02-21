@@ -10,16 +10,18 @@
 #include <cy/cyMatrix.h>
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
+#include <vector>
 #include "lodepng.h"
 #include "Texture.h"
 
-#define RENDER_TO_TEXTURE
+//#define RENDER_TO_TEXTURE
+#define RENDER_SKYBOX
 
 GLuint VAO;
 GLuint VBO;
 
 GLuint VAO_rtt;
-GLuint VBO_rtt;
+GLuint VBO_cubemap;
 GLuint IBO_rtt;
 
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
@@ -29,6 +31,7 @@ cyGLRenderTexture2D g_rtt;
 
 cyGLSLProgram g_teapotShaderProgram;
 cyGLSLProgram g_rttShaderProgram;
+cyGLSLProgram g_skyboxShaderProgram;
 
 cyTriMesh g_triMesh;
 
@@ -58,21 +61,24 @@ constexpr char const* path_fragmentShader_teapot = "content/shaders/fragment_tea
 constexpr char const* path_vertexShader_rtt = "content/shaders/vertex_rtt.shader";
 constexpr char const* path_fragmentShader_rtt = "content/shaders/fragment_rtt.shader";
 
+constexpr char const* path_vertexShader_skybox = "content/shaders/vertex_skybox.shader";
+constexpr char const* path_fragmentShader_skybox = "content/shaders/fragment_skybox.shader";
+
 constexpr char const* path_teapotResource = "content/teapot/";
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
 
-const GLfloat g_rtt_buffer_data[] =
+const GLfloat g_quad_buffer_data[] =
 {
-// ndc pos         // UV
--0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
-0.5f, 0.5f, 0.0f,  1.0f, 1.0f,
--0.5f, 0.5f, 0.0f,  0.0f, 1.0f
+	// ndc pos         // UV
+	-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+	0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+	0.5f, 0.5f, 0.0f,  1.0f, 1.0f,
+	-0.5f, 0.5f, 0.0f,  0.0f, 1.0f
 };
 
-const unsigned int g_rtt_indices_data[] =
+const unsigned int g_quad_indices_data[] =
 {
 	0,1,2,
 	2,3,0
@@ -80,6 +86,70 @@ const unsigned int g_rtt_indices_data[] =
 
 const unsigned int count_indices = 6;
 
+GLuint VAO_cubemap;
+GLuint VBO_cubeMap;
+GLuint Tex_cubeMap;
+
+const float g_skyboxVertices[] = {
+	// positions          
+	-1.0f,  1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+
+	-1.0f, -1.0f,  1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f,  1.0f,
+	-1.0f, -1.0f,  1.0f,
+
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+
+	-1.0f, -1.0f,  1.0f,
+	-1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f, -1.0f,  1.0f,
+	-1.0f, -1.0f,  1.0f,
+
+	-1.0f,  1.0f, -1.0f,
+	 1.0f,  1.0f, -1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	-1.0f,  1.0f,  1.0f,
+	-1.0f,  1.0f, -1.0f,
+
+	-1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f,  1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f,  1.0f,
+	 1.0f, -1.0f,  1.0f
+};
+
+namespace
+{
+	void LoadTextureData( const char* i_texturePath, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
+	{
+		auto errorCode = lodepng::decode( io_data, io_width, io_height, i_texturePath );
+		if (errorCode)
+		{
+			fprintf( stderr, "decoder error %d : %s.\n", errorCode, lodepng_error_text( errorCode ) );
+		}
+		else
+		{
+			fprintf( stdout, "Loaded/Decoded the %s texture successfully.\n", i_texturePath );
+		}
+	}
+}
 
 void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram )
 {
@@ -111,6 +181,65 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	assert( glGetError() == GL_NO_ERROR );
 }
 
+unsigned int LoadCubemap( std::vector<std::string>& i_faces )
+{
+	unsigned int textureID;
+	glGenTextures( 1, &textureID );
+	glBindTexture( GL_TEXTURE_CUBE_MAP, textureID );
+
+	unsigned int width;
+	unsigned int height;
+	std::vector<unsigned char> data;
+	for (unsigned int i = 0; i < i_faces.size(); i++)
+	{
+		LoadTextureData( i_faces[i].c_str(), data, width, height );
+		if (data.data())
+		{
+			glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data()
+			);
+		}
+		else
+		{
+			std::cout << "Cubemap texture failed to load at path: " << i_faces[i] << std::endl;
+		}
+	}
+	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
+	return textureID;
+}
+
+void InitializeSkyBox()
+{
+	std::vector<std::string> faces
+	{
+		"content/cubemap/cubemap_posx.png",
+		"content/cubemap/cubemap_negx.png",
+		"content/cubemap/cubemap_posy.png",
+		"content/cubemap/cubemap_negy.png",
+		"content/cubemap/cubemap_posz.png",
+		"content/cubemap/cubemap_negz.png"
+	};
+	Tex_cubeMap = LoadCubemap( faces );
+	// VAO, VBO
+	glGenVertexArrays( 1, &VAO_cubemap );
+	glBindVertexArray( VAO_cubemap );
+
+	CompileShaders( path_vertexShader_skybox, path_fragmentShader_skybox, g_skyboxShaderProgram );
+
+	glGenBuffers( 1, &VBO_cubeMap );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubeMap );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( g_skyboxVertices ), g_skyboxVertices, GL_STATIC_DRAW );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), (const GLvoid*)(0) );
+	glEnableVertexAttribArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindVertexArray( 0 );
+	assert( glGetError() == GL_NO_ERROR );
+}
+
 void InitializeMaterial()
 {
 	g_teapotShaderProgram.Bind();
@@ -136,9 +265,9 @@ void InitializeRenderTexture()
 	glGenVertexArrays( 1, &VAO_rtt );
 	glBindVertexArray( VAO_rtt );
 
-	glGenBuffers( 1, &VBO_rtt );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO_rtt );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( g_rtt_buffer_data ), g_rtt_buffer_data, GL_STATIC_DRAW );
+	glGenBuffers( 1, &VBO_cubemap );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubemap );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
 	glEnableVertexAttribArray( 0 );
 	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
@@ -146,7 +275,7 @@ void InitializeRenderTexture()
 
 	glGenBuffers( 1, &IBO_rtt );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO_rtt );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(unsigned int) * count_indices), &g_rtt_indices_data[0], GL_STATIC_DRAW );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof( unsigned int ) * count_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
 
 	glBindVertexArray( 0 );
@@ -252,7 +381,7 @@ void InitializeMesh( const char* i_objFileName )
 }
 
 void Display()
-{		
+{
 	// Pass1 -  render the scene to the frame buffer
 	{
 #if defined(RENDER_TO_TEXTURE)
@@ -274,19 +403,9 @@ void Display()
 		g_rtt.Unbind();
 #endif
 	}
-	// Pass2 - draw the render texture
+	// Draw the skybox
 	{
-		// Clear the screen
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		g_rttShaderProgram.Bind();
-		glUniform1i( glGetUniformLocation( g_rttShaderProgram.GetID(), "tex_render" ), 0 );
-		glActiveTexture( GL_TEXTURE0 );
-		glBindTexture( GL_TEXTURE_2D, g_rtt.GetTextureID() );
-		g_rtt.BuildTextureMipmaps();
-		g_rtt.SetTextureMaxAnisotropy();
-		glBindVertexArray( VAO_rtt );
-		glDrawElements( GL_TRIANGLES, count_indices, GL_UNSIGNED_INT, 0 );
-		assert( glGetError() == GL_NO_ERROR );
+
 	}
 }
 
@@ -332,11 +451,13 @@ void UpdateView()
 	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
 
+#if defined(RENDER_TO_TEXTURE)
 	g_rttShaderProgram.Bind();
 	mat_rttRotation.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
 	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_rttRotation.cell );
 	glUniform1f( glGetUniformLocation( g_rttShaderProgram.GetID(), "dis" ), rtt_dis );
 	assert( glGetError() == GL_NO_ERROR );
+#endif
 }
 
 void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
@@ -571,6 +692,10 @@ int main( int argc, char* argv[] )
 	InitializeRenderTexture();
 #endif
 
+#if defined(RENDER_SKYBOX)
+	InitializeSkyBox();
+#endif
+
 	while (!glfwWindowShouldClose( pWindow ))
 	{
 		UpdateMouseInput( pWindow );
@@ -601,6 +726,12 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &IBO_rtt );
 		g_rttShaderProgram.Delete();
 		g_rtt.Delete();
+		assert( glGetError() == GL_NO_ERROR );
+#endif
+
+#if defined(RENDER_SKYBOX)
+		glDeleteVertexArrays( 1, &VAO_cubemap );
+		glDeleteBuffers( 1, &VBO_cubemap );
 		assert( glGetError() == GL_NO_ERROR );
 #endif
 	}
