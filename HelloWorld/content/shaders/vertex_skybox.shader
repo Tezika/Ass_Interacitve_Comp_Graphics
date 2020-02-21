@@ -22,5 +22,6 @@ uniform mat4 mat_proj;
 void main()
 {
 	gl_Position =  mat_proj * mat_view * vec4(i_pos, 1);
+	// gl_Position = pos.xyww; 
 	texCoord = i_pos;
 }

@@ -40,7 +40,7 @@ bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 90.0f;
-float camera_distance = 50.0f;
+float camera_distance = 0.0f;
 
 float rtt_angle_yaw = 0;
 float rtt_angle_pitch = 0;
@@ -196,8 +196,9 @@ unsigned int LoadCubemap( std::vector<std::string>& i_faces )
 		if (data.data())
 		{
 			glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data()
+				0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<void*>(data.data())
 			);
+			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 		else
 		{
@@ -229,10 +230,12 @@ void InitializeSkyBox()
 	glBindVertexArray( VAO_cubemap );
 
 	CompileShaders( path_vertexShader_skybox, path_fragmentShader_skybox, g_skyboxShaderProgram );
+	g_skyboxShaderProgram.Bind();
+	glUniform1i(glGetUniformLocation(g_skyboxShaderProgram.GetID(), "tex_cubemap"), 0);
 
 	glGenBuffers( 1, &VBO_cubemap );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubemap );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( g_skyboxVertices ), g_skyboxVertices, GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( g_skyboxVertices ), &g_skyboxVertices[0], GL_STATIC_DRAW );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), (const GLvoid*)(0) );
 	glEnableVertexAttribArray( 0 );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
@@ -382,15 +385,19 @@ void InitializeMesh( const char* i_objFileName )
 
 void Display()
 {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	// Draw the skybox
 	{
-		glDepthMask( GL_FALSE );
+		//glDepthFunc(GL_LEQUAL);
+		glDepthMask(GL_FALSE);
 		g_skyboxShaderProgram.Bind();
 		// ... set view and projection matrix
 		glBindVertexArray( VAO_cubemap );
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture( GL_TEXTURE_CUBE_MAP, Tex_cubemap );
 		glDrawArrays( GL_TRIANGLES, 0, 36 );
-		glDepthMask( GL_TRUE );
+		glDepthMask(GL_TRUE);
+		//glDepthFunc(GL_LESS);
 	}
 
 //	// Pass1 -  render the scene to the frame buffer
@@ -470,7 +477,7 @@ void UpdateView()
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_proj" ), 1, GL_FALSE, mat_perspective.cell );
+	glUniformMatrix4fv( glGetUniformLocation(g_skyboxShaderProgram.GetID(), "mat_proj"), 1, GL_FALSE, mat_perspective.cell);
 	assert( glGetError() == GL_NO_ERROR );
 #endif
 }
