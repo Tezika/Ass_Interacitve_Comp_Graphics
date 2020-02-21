@@ -5,10 +5,12 @@
 // The locations assigned are arbitrary
 // but must match the C calls to glVertexAttribPointer()
 layout( location = 0 ) in vec3 i_pos;
-out vec3 texCoord;
+layout( location = 1 ) in vec3 i_normal;
 
-uniform mat4 mat_view;
-uniform mat4 mat_proj;
+uniform mat4 mat_modeToView;
+
+
+
 // Output
 //=======
 // layout( location = 1) out vec4 o_vertexColor;
