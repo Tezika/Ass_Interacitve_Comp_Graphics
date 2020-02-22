@@ -16,6 +16,7 @@
 
 //#define RENDER_TO_TEXTURE
 #define RENDER_SKYBOX
+#define USE_REFlECTION_SHADER
 
 GLuint VAO;
 GLuint VBO;
@@ -29,7 +30,7 @@ Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 
 cyGLRenderTexture2D g_rtt;
 
-cyGLSLProgram g_teapotShaderProgram;
+cyGLSLProgram g_meshShaderProgram;
 cyGLSLProgram g_rttShaderProgram;
 cyGLSLProgram g_skyboxShaderProgram;
 
@@ -63,6 +64,9 @@ constexpr char const* path_fragmentShader_rtt = "content/shaders/fragment_rtt.sh
 
 constexpr char const* path_vertexShader_skybox = "content/shaders/vertex_skybox.shader";
 constexpr char const* path_fragmentShader_skybox = "content/shaders/fragment_skybox.shader";
+
+constexpr char const* path_vertexShader_reflection = "content/shaders/vertex_reflection.shader";
+constexpr char const* path_fragmentShader_reflection = "content/shaders/fragment_reflection.shader";
 
 constexpr char const* path_teapotResource = "content/teapot/";
 
@@ -245,10 +249,10 @@ void InitializeSkyBox()
 
 void InitializeMaterial()
 {
-	g_teapotShaderProgram.Bind();
-	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
-	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
-	glUniform3f( glGetUniformLocation( g_teapotShaderProgram.GetID(), "specularColor" ), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
+	g_meshShaderProgram.Bind();
+	glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
+	glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
+	glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "specularColor" ), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
 }
 
 void InitializeRenderTexture()
@@ -303,9 +307,9 @@ void InitializeTextures()
 		fprintf( stderr, "Failed to create the specular texture.\n" );
 		assert( false );
 	}
-	g_teapotShaderProgram.Bind();
-	glUniform1i( glGetUniformLocation( g_teapotShaderProgram.GetID(), "tex_diff" ), 0 );
-	glUniform1i( glGetUniformLocation( g_teapotShaderProgram.GetID(), "tex_spec" ), 1 );
+	g_meshShaderProgram.Bind();
+	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "tex_diff" ), 0 );
+	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "tex_spec" ), 1 );
 }
 
 void InitializeMesh( const char* i_objFileName )
@@ -406,9 +410,11 @@ void Display()
 		g_rtt.Bind();
 #endif
 		// Draw the scene
-		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
-		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
-		g_teapotShaderProgram.Bind();
+#if not defined(USE_REFlECTION_SHADER)
+	pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
+	pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
+#endif
+		g_meshShaderProgram.Bind();
 		glBindVertexArray( VAO );
 		const GLvoid* const offset = 0;
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
@@ -457,11 +463,17 @@ void UpdateView()
 	auto mat_normalMatToView = mat_modelToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
-	g_teapotShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_teapotShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+	g_meshShaderProgram.Bind();
+#if not defined(USE_REFlECTION_SHADER)	
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+#else
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+#endif
 
 #if defined(RENDER_TO_TEXTURE)
 	g_rttShaderProgram.Bind();
@@ -486,7 +498,7 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 	assert( i_pWindow );
 	if (i_key == GLFW_KEY_F6 && i_action == GLFW_PRESS)
 	{
-		CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_teapotShaderProgram );
+		CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
 	}
 	if (i_key == GLFW_KEY_LEFT_CONTROL)
 	{
@@ -703,7 +715,11 @@ int main( int argc, char* argv[] )
 	}
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_teapotShaderProgram );
+#if defined(USE_REFlECTION_SHADER)
+	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
+#else
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
+#endif
 
 	InitializeMesh( argv[1] );
 	InitializeMaterial();
@@ -733,7 +749,7 @@ int main( int argc, char* argv[] )
 		glDeleteVertexArrays( 1, &VAO );
 		glDeleteBuffers( 1, &VBO );
 		assert( glGetError() == GL_NO_ERROR );
-		g_teapotShaderProgram.Delete();
+		g_meshShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 		delete pDiffuseTex;
 		pDiffuseTex = nullptr;
