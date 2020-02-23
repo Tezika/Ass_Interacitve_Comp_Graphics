@@ -40,7 +40,7 @@ bool bRotateLight = false;
 bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
-float camera_angle_pitch = 0;
+float camera_angle_pitch = 90.0f;
 float camera_distance = -50.0f;
 
 float rtt_angle_yaw = 0;
@@ -255,6 +255,13 @@ void InitializeMaterial()
 		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
 		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
 		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "specularColor" ), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
+	}
+	else
+	{
+		g_meshShaderProgram.Bind();
+		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "diffuseColor" ), 0.5f, 0.5, 0.5f );
+		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "ambientColor" ), 0.5f, 0.5f, 0.5f );
+		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "specularColor" ), 0.80099994f, 0.80099994f, 0.80099994f );
 	}
 }
 
@@ -476,7 +483,7 @@ void Display()
 		g_rtt.Unbind();
 #endif
 	}
-	}
+}
 
 void UpdateView()
 {
@@ -515,16 +522,10 @@ void UpdateView()
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	g_meshShaderProgram.Bind();
-#if not defined(USE_REFlECTION_SHADER)	
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-#else
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
-#endif
 
 #if defined(RENDER_TO_TEXTURE)
 	g_rttShaderProgram.Bind();
