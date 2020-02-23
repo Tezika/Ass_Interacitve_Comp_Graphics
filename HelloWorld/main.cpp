@@ -25,6 +25,10 @@ GLuint VAO_rtt;
 GLuint VBO_rtt;
 GLuint IBO_rtt;
 
+GLuint VAO_plane;
+GLuint VBO_plane;
+GLuint IBO_plane;
+
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 
@@ -87,6 +91,15 @@ const unsigned int g_quad_indices_data[] =
 	0,1,2,
 	2,3,0
 };
+
+//const GLfloat g_plane_buffer_data[] =
+//{
+//	// ndc pos         // UV
+//	-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+//	0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+//	0.5f, 0.5f, 0.0f,  1.0f, 1.0f,
+//	-0.5f, 0.5f, 0.0f,  0.0f, 1.0f
+//};
 
 const unsigned int count_indices = 6;
 
@@ -282,16 +295,16 @@ void InitializeRenderTexture()
 	glGenVertexArrays( 1, &VAO_rtt );
 	glBindVertexArray( VAO_rtt );
 
-	glGenBuffers( 1, &VBO_rtt );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO_rtt );
+	glGenBuffers( 1, &VBO_plane );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO_plane );
 	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
 	glEnableVertexAttribArray( 0 );
 	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
 	glEnableVertexAttribArray( 1 );
 
-	glGenBuffers( 1, &IBO_rtt );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO_rtt );
+	glGenBuffers( 1, &IBO_plane );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO_plane );
 	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof( unsigned int ) * count_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
 
@@ -305,21 +318,27 @@ void InitializeTextures()
 	{
 		return;
 	}
-	std::string path_diffusesTex( path_meshResource );
-	path_diffusesTex += g_triMesh.M( 0 ).map_Kd;
-	pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
-	if (!pDiffuseTex)
+	if (g_triMesh.M( 0 ).map_Kd != nullptr)
 	{
-		fprintf( stderr, "Failed to create the diffuse texture.\n" );
-		assert( false );
+		std::string path_diffusesTex( path_meshResource );
+		path_diffusesTex += g_triMesh.M( 0 ).map_Kd;
+		pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
+		if (!pDiffuseTex)
+		{
+			fprintf( stderr, "Failed to create the diffuse texture.\n" );
+			assert( false );
+		}
 	}
-	std::string path_specularTex( path_meshResource );
-	path_specularTex += g_triMesh.M( 0 ).map_Ks;
-	pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
-	if (!pSpecularTex)
+	if (g_triMesh.M( 0 ).map_Ks != nullptr)
 	{
-		fprintf( stderr, "Failed to create the specular texture.\n" );
-		assert( false );
+		std::string path_specularTex( path_meshResource );
+		path_specularTex += g_triMesh.M( 0 ).map_Ks;
+		pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
+		if (!pSpecularTex)
+		{
+			fprintf( stderr, "Failed to create the specular texture.\n" );
+			assert( false );
+		}
 	}
 	g_meshShaderProgram.Bind();
 	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "tex_diff" ), 0 );
@@ -445,6 +464,29 @@ void InitializeMesh( const char* i_objFileName )
 	}
 }
 
+void InitializePlane()
+{
+	// Generate the render to texture's vbo and vao
+	glGenVertexArrays( 1, &VAO_plane );
+	glBindVertexArray( VAO_plane );
+
+	glGenBuffers( 1, &VBO_plane );
+	glBindBuffer( GL_ARRAY_BUFFER, VBO_plane );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
+	glEnableVertexAttribArray( 0 );
+	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
+	glEnableVertexAttribArray( 1 );
+
+	glGenBuffers( 1, &IBO_rtt );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO_rtt );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof( unsigned int ) * count_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
+	assert( glGetError() == GL_NO_ERROR );
+
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+}
+
 void Display()
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -462,7 +504,7 @@ void Display()
 		//glDepthFunc(GL_LESS);
 	}
 
-	// Pass1 -  render the scene to the frame buffer
+	// Pass1 - render the scene
 	{
 #if defined(RENDER_TO_TEXTURE)
 		g_rtt.Bind();
@@ -482,6 +524,13 @@ void Display()
 #if defined(RENDER_TO_TEXTURE)
 		g_rtt.Unbind();
 #endif
+}
+
+	// Draw the plane
+	{
+		glBindVertexArray( VAO_plane );
+		glDrawElements( GL_TRIANGLES, count_indices, GL_UNSIGNED_INT, 0 );
+		assert( glGetError() == GL_NO_ERROR );
 	}
 }
 
@@ -800,6 +849,9 @@ int main( int argc, char* argv[] )
 
 		glDeleteVertexArrays( 1, &VAO );
 		glDeleteBuffers( 1, &VBO );
+		glDeleteBuffers( 1, &VAO_plane );
+		glDeleteBuffers( 1, &VBO_plane );
+		glDeleteBuffers( 1, &IBO_plane );
 		assert( glGetError() == GL_NO_ERROR );
 		g_meshShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
@@ -827,4 +879,4 @@ int main( int argc, char* argv[] )
 
 	glfwTerminate();
 	return 0;
-}
+	}
