@@ -40,7 +40,7 @@ bool bRotateLight = false;
 bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
-float camera_angle_pitch = 90.0f;
+float camera_angle_pitch = 0;
 float camera_distance = -50.0f;
 
 float rtt_angle_yaw = 0;
@@ -68,7 +68,7 @@ constexpr char const* path_fragmentShader_skybox = "content/shaders/fragment_sky
 constexpr char const* path_vertexShader_reflection = "content/shaders/vertex_reflection.shader";
 constexpr char const* path_fragmentShader_reflection = "content/shaders/fragment_reflection.shader";
 
-constexpr char const* path_teapotResource = "content/teapot/";
+constexpr char const* path_meshResource = "content/mesh/";
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
@@ -143,6 +143,7 @@ namespace
 {
 	void LoadTextureData( const char* i_texturePath, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
 	{
+		io_data.clear();
 		auto errorCode = lodepng::decode( io_data, io_width, io_height, i_texturePath );
 		if (errorCode)
 		{
@@ -202,7 +203,6 @@ unsigned int LoadCubemap( std::vector<std::string>& i_faces )
 			glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
 				0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<void*>(data.data())
 			);
-			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 		else
 		{
@@ -235,7 +235,7 @@ void InitializeSkyBox()
 
 	CompileShaders( path_vertexShader_skybox, path_fragmentShader_skybox, g_skyboxShaderProgram );
 	g_skyboxShaderProgram.Bind();
-	glUniform1i(glGetUniformLocation(g_skyboxShaderProgram.GetID(), "tex_cubemap"), 0);
+	glUniform1i( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "tex_cubemap" ), 0 );
 
 	glGenBuffers( 1, &VBO_cubemap );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubemap );
@@ -249,10 +249,13 @@ void InitializeSkyBox()
 
 void InitializeMaterial()
 {
-	g_meshShaderProgram.Bind();
-	glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
-	glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
-	glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "specularColor" ), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
+	if (g_triMesh.NM() > 0)
+	{
+		g_meshShaderProgram.Bind();
+		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
+		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
+		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "specularColor" ), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
+	}
 }
 
 void InitializeRenderTexture()
@@ -291,7 +294,11 @@ void InitializeRenderTexture()
 
 void InitializeTextures()
 {
-	std::string path_diffusesTex( path_teapotResource );
+	if (g_triMesh.NM() <= 0)
+	{
+		return;
+	}
+	std::string path_diffusesTex( path_meshResource );
 	path_diffusesTex += g_triMesh.M( 0 ).map_Kd;
 	pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
 	if (!pDiffuseTex)
@@ -299,7 +306,7 @@ void InitializeTextures()
 		fprintf( stderr, "Failed to create the diffuse texture.\n" );
 		assert( false );
 	}
-	std::string path_specularTex( path_teapotResource );
+	std::string path_specularTex( path_meshResource );
 	path_specularTex += g_triMesh.M( 0 ).map_Ks;
 	pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
 	if (!pSpecularTex)
@@ -314,7 +321,7 @@ void InitializeTextures()
 
 void InitializeMesh( const char* i_objFileName )
 {
-	std::string path_objFile( path_teapotResource );
+	std::string path_objFile( path_meshResource );
 	path_objFile += i_objFileName;
 	if (!g_triMesh.LoadFromFileObj( path_objFile.c_str(), true ))
 	{
@@ -329,78 +336,122 @@ void InitializeMesh( const char* i_objFileName )
 	{
 		g_triMesh.ComputeBoundingBox();
 	}
-	// Load texture data
-
-	glGenVertexArrays( 1, &VAO );
-	std::vector<cyVec3f> vertices;
-	std::vector<cyVec3f> vertexNormals;
-	std::vector<cyVec2f> texCoords;
-	for (int i = 0; i < g_triMesh.NF(); i++)
+	if (g_triMesh.NVT() > 0)
 	{
-		auto triFace = g_triMesh.F( i );
-		for (int j = 0; j < 3; j++)
+		glGenVertexArrays( 1, &VAO );
+		std::vector<cyVec3f> vertices;
+		std::vector<cyVec3f> vertexNormals;
+		for (int i = 0; i < g_triMesh.NF(); i++)
 		{
-			vertices.push_back( g_triMesh.V( triFace.v[j] ) );
+			auto triFace = g_triMesh.F( i );
+			for (int j = 0; j < 3; j++)
+			{
+				vertices.push_back( g_triMesh.V( triFace.v[j] ) );
+			}
 		}
+		for (int i = 0; i < g_triMesh.NF(); i++)
+		{
+			auto curNormalFace = g_triMesh.FN( i );
+			for (int j = 0; j < 3; j++)
+			{
+				vertexNormals.push_back( g_triMesh.VN( curNormalFace.v[j] ) );
+			}
+		}
+		std::vector<cyVec2f> texCoords;
+		for (int i = 0; i < g_triMesh.NF(); i++)
+		{
+			auto curTexFace = g_triMesh.FT( i );
+			for (int j = 0; j < 3; j++)
+			{
+				texCoords.push_back( g_triMesh.VT( curTexFace.v[j] ).XY() );
+			}
+		}
+		glBindVertexArray( VAO );
+		assert( glGetError() == GL_NO_ERROR );
+		const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
+		const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
+		const auto sizeOfTexCoord = static_cast<GLsizei>(texCoords.size() * sizeof( cyVec2f ));
+		// For vertex data buffer
+		glGenBuffers( 1, &VBO );
+		glBindBuffer( GL_ARRAY_BUFFER, VBO );
+		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals + sizeOfTexCoord, NULL, GL_STATIC_DRAW );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, sizeOfTexCoord, reinterpret_cast<void*>(texCoords.data()) );
+
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
+		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
+		glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec2f )), (const GLvoid*)(sizeOfVertices + sizeOfNormals) );
+
+		glEnableVertexAttribArray( 0 );
+		glEnableVertexAttribArray( 1 );
+		glEnableVertexAttribArray( 2 );
+
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		assert( glGetError() == GL_NO_ERROR );
+
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		glBindVertexArray( 0 );
 	}
-	for (int i = 0; i < g_triMesh.NF(); i++)
+	else
 	{
-		auto curNormalFace = g_triMesh.FN( i );
-		for (int j = 0; j < 3; j++)
+		glGenVertexArrays( 1, &VAO );
+		std::vector<cyVec3f> vertices;
+		std::vector<cyVec3f> vertexNormals;
+		for (int i = 0; i < g_triMesh.NF(); i++)
 		{
-			vertexNormals.push_back( g_triMesh.VN( curNormalFace.v[j] ) );
+			auto triFace = g_triMesh.F( i );
+			for (int j = 0; j < 3; j++)
+			{
+				vertices.push_back( g_triMesh.V( triFace.v[j] ) );
+			}
 		}
-	}
-	for (int i = 0; i < g_triMesh.NF(); i++)
-	{
-		auto curTexFace = g_triMesh.FT( i );
-		for (int j = 0; j < 3; j++)
+		for (int i = 0; i < g_triMesh.NF(); i++)
 		{
-			texCoords.push_back( g_triMesh.VT( curTexFace.v[j] ).XY() );
+			auto curNormalFace = g_triMesh.FN( i );
+			for (int j = 0; j < 3; j++)
+			{
+				vertexNormals.push_back( g_triMesh.VN( curNormalFace.v[j] ) );
+			}
 		}
+		glBindVertexArray( VAO );
+		assert( glGetError() == GL_NO_ERROR );
+		const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
+		const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
+		// For vertex data buffer
+		glGenBuffers( 1, &VBO );
+		glBindBuffer( GL_ARRAY_BUFFER, VBO );
+		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, NULL, GL_STATIC_DRAW );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
+
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
+		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
+
+		glEnableVertexAttribArray( 0 );
+		glEnableVertexAttribArray( 1 );
+
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		glBindVertexArray( 0 );
+		assert( glGetError() == GL_NO_ERROR );
 	}
-	glBindVertexArray( VAO );
-	assert( glGetError() == GL_NO_ERROR );
-	const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
-	const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
-	const auto sizeOfTexCoord = static_cast<GLsizei>(texCoords.size() * sizeof( cyVec2f ));
-	// For vertex data buffer
-	glGenBuffers( 1, &VBO );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO );
-	glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals + sizeOfTexCoord, NULL, GL_STATIC_DRAW );
-	glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
-	glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
-	glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, sizeOfTexCoord, reinterpret_cast<void*>(texCoords.data()) );
-
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
-	glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
-	glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec2f )), (const GLvoid*)(sizeOfVertices + sizeOfNormals) );
-
-	glEnableVertexAttribArray( 0 );
-	glEnableVertexAttribArray( 1 );
-	glEnableVertexAttribArray( 2 );
-
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	assert( glGetError() == GL_NO_ERROR );
-
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindVertexArray( 0 );
 }
 
 void Display()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	// Draw the skybox
 	{
 		//glDepthFunc(GL_LEQUAL);
-		glDepthMask(GL_FALSE);
+		glDepthMask( GL_FALSE );
 		g_skyboxShaderProgram.Bind();
 		// ... set view and projection matrix
 		glBindVertexArray( VAO_cubemap );
-		glActiveTexture(GL_TEXTURE0);
+		glActiveTexture( GL_TEXTURE0 );
 		glBindTexture( GL_TEXTURE_CUBE_MAP, Tex_cubemap );
 		glDrawArrays( GL_TRIANGLES, 0, 36 );
-		glDepthMask(GL_TRUE);
+		glDepthMask( GL_TRUE );
 		//glDepthFunc(GL_LESS);
 	}
 
@@ -411,8 +462,8 @@ void Display()
 #endif
 		// Draw the scene
 #if not defined(USE_REFlECTION_SHADER)
-	pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
-	pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
+		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
+		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
 #endif
 		g_meshShaderProgram.Bind();
 		glBindVertexArray( VAO );
@@ -425,7 +476,7 @@ void Display()
 		g_rtt.Unbind();
 #endif
 	}
-}
+	}
 
 void UpdateView()
 {
@@ -479,16 +530,16 @@ void UpdateView()
 	g_rttShaderProgram.Bind();
 	mat_rttRotation.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
 	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_rttRotation.cell );
-	glUniform1f( glGetUniformLocation( g_rttShaderProgram.GetID(), "dis" ),s rtt_dis );
+	glUniform1f( glGetUniformLocation( g_rttShaderProgram.GetID(), "dis" ), s rtt_dis );
 	assert( glGetError() == GL_NO_ERROR );
 #endif
 
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
 	// Removed the translation from the view matrix
-	auto mat4_view = cyMatrix4f(cyMatrix3f(mat_view));
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat4_view.cell);
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_proj" ), 1, GL_FALSE, mat_perspective.cell);
+	auto mat4_view = cyMatrix4f( cyMatrix3f( mat_view ) );
+	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat4_view.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_proj" ), 1, GL_FALSE, mat_perspective.cell );
 	assert( glGetError() == GL_NO_ERROR );
 #endif
 }
