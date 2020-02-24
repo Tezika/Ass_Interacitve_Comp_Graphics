@@ -370,7 +370,6 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 	}
 	else
 	{
-
 		std::vector<cyVec3f> vertices;
 		std::vector<cyVec3f> vertexNormals;
 		for (int i = 0; i < i_mesh.NF(); i++)

@@ -12,7 +12,6 @@ uniform mat4 mat_modelToView;
 uniform mat4 mat_normalModelToView;
 uniform mat4 mat_modelToProjection;
 uniform mat4 mat_lightTransformation;
-uniform int mirroring;
 
 const vec3 light_pos = vec3(1.0f, 1.0f, 1.0f);
 out vec3 lightPos;
