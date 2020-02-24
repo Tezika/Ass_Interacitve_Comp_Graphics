@@ -9,20 +9,11 @@ out vec4 o_color;
 
 // For renderTex
 uniform sampler2D tex_mirror;
-uniform sampler2D tex_environment;
 
 // Entry Point
 //============
 
 void main()
 {
-	vec4 mixColor = texture(tex_mirror, texCoord) * texture(tex_environment, texCoord);
-	if(length(mixColor.xyz) == 0)
-	{
-		o_color = vec4(texture(tex_environment, texCoord).xyz, 1);
-	}
-	else
-	{
-		o_color = vec4(mixColor.xyz, 1);
-	}
+	o_color = vec4(texture(tex_mirror, texCoord).xyz, 1);
 }

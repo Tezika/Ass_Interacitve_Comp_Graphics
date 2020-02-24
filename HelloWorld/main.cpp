@@ -25,20 +25,18 @@ GLuint VAO_rtt;
 GLuint VBO_rtt;
 GLuint IBO_rtt;
 
+
 GLuint VAO_plane;
 GLuint VBO_plane;
-GLuint IBO_plane;
 
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 
 cyGLRenderTexture2D g_rtt_mirror;
-cyGLRenderTexture2D g_rtt_environment;
 
 cyGLSLProgram g_meshShaderProgram;
 cyGLSLProgram g_skyboxShaderProgram;
 cyGLSLProgram g_planeShaderProgram;
-cyGLSLProgram g_envMirrorShaderProgram;
 
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
@@ -81,21 +79,6 @@ constexpr char const* path_meshResource = "content/mesh/";
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
-
-const GLfloat g_quad_buffer_data[] =
-{
-	// ndc pos         // UV
-	-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-	0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
-	0.5f, 0.5f, 0.0f,  1.0f, 1.0f,
-	-0.5f, 0.5f, 0.0f,  0.0f, 1.0f
-};
-
-const unsigned int g_quad_indices_data[] =
-{
-	0,1,2,
-	2,3,0
-};
 
 const unsigned int count_indices = 6;
 
@@ -439,30 +422,6 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 	}
 }
 
-void InitializePlane()
-{
-	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
-	// Generate the render to texture's vbo and vao
-	glGenVertexArrays( 1, &VAO_plane );
-	glBindVertexArray( VAO_plane );
-
-	glGenBuffers( 1, &VBO_plane );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO_plane );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
-	glEnableVertexAttribArray( 0 );
-	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
-	glEnableVertexAttribArray( 1 );
-
-	glGenBuffers( 1, &IBO_rtt );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO_rtt );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof( unsigned int ) * count_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
-	assert( glGetError() == GL_NO_ERROR );
-
-	glBindVertexArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-}
-
 void Display()
 {
 	//glViewport( 0, 0, screen_Width, screen_Height );
@@ -470,25 +429,14 @@ void Display()
 	{
 		g_rtt_mirror.Bind();
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
 		g_meshShaderProgram.Bind();
-		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 0 );
+		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
+		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		glBindVertexArray( 0 );
 		g_rtt_mirror.Unbind();
-		assert( glGetError() == GL_NO_ERROR );
-	}
-	// Render the environment pkane to a texture(rtt)
-	{
-		g_rtt_environment.Bind();
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		g_planeShaderProgram.Bind();
-		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "tex_cubemap" ), 0 );
-		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "environment" ), 1 );
-		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-		glBindVertexArray( 0 );
-		g_rtt_environment.Unbind();
 		assert( glGetError() == GL_NO_ERROR );
 	}
 	// Draw the skybox
@@ -513,24 +461,25 @@ void Display()
 #endif
 		g_meshShaderProgram.Bind();
 		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
+		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
-
-	// Draw the plane by using the mirror rtt and environment rtt
+	// Draw the plane for reflection
 	{
-		g_envMirrorShaderProgram.Bind();
-		glUniform1i( glGetUniformLocation( g_envMirrorShaderProgram.GetID(), "tex_mirror" ), 1 );
-		glUniform1i( glGetUniformLocation( g_envMirrorShaderProgram.GetID(), "tex_environment" ), 2);
+		g_planeShaderProgram.Bind();
+		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "environment" ), 1 );
+		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "mirroring" ), 1 );
+		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "tex_mirror" ), 1 );
 		glActiveTexture( GL_TEXTURE1 );
 		glBindTexture( GL_TEXTURE_2D, g_rtt_mirror.GetTextureID() );
-		glActiveTexture( GL_TEXTURE2 );
-		glBindTexture( GL_TEXTURE_2D, g_rtt_environment.GetTextureID() );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
+
 	}
 }
 
@@ -582,10 +531,6 @@ void UpdateView()
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	assert( glGetError() == GL_NO_ERROR );
-
-	g_envMirrorShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_envMirrorShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
 	assert( glGetError() == GL_NO_ERROR );
 
 #if defined(RENDER_SKYBOX)
@@ -823,8 +768,6 @@ int main( int argc, char* argv[] )
 #if defined(USE_REFlECTION_SHADER)
 	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
 	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
-	CompileShaders( path_vertexShader_mirror, path_fragmentShader_mirror, g_envMirrorShaderProgram );
-
 #else
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
@@ -836,11 +779,9 @@ int main( int argc, char* argv[] )
 
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_planeShaderProgram );
-	//InitializeTextures( g_planeMesh, g_planeShaderProgram );
 
 #if defined(RENDER_TO_TEXTURE)
 	InitializeRenderTexture(g_rtt_mirror);
-	InitializeRenderTexture(g_rtt_environment);
 #endif
 
 #if defined(RENDER_SKYBOX)
@@ -863,11 +804,9 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &VBO );
 		glDeleteBuffers( 1, &VAO_plane );
 		glDeleteBuffers( 1, &VBO_plane );
-		glDeleteBuffers( 1, &IBO_plane );
 		assert( glGetError() == GL_NO_ERROR );
 		g_meshShaderProgram.Delete();
 		g_planeShaderProgram.Delete();
-		g_envMirrorShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 		delete pDiffuseTex;
 		pDiffuseTex = nullptr;
@@ -877,7 +816,6 @@ int main( int argc, char* argv[] )
 
 #if defined(RENDER_TO_TEXTURE)
 		g_rtt_mirror.Delete();
-		g_rtt_environment.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 #endif
 
