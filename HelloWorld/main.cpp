@@ -21,11 +21,6 @@
 GLuint VAO;
 GLuint VBO;
 
-GLuint VAO_rtt;
-GLuint VBO_rtt;
-GLuint IBO_rtt;
-
-
 GLuint VAO_plane;
 GLuint VBO_plane;
 
@@ -73,8 +68,6 @@ constexpr char const* path_fragmentShader_skybox = "content/shaders/fragment_sky
 constexpr char const* path_vertexShader_reflection = "content/shaders/vertex_reflection.shader";
 constexpr char const* path_fragmentShader_reflection = "content/shaders/fragment_reflection.shader";
 
-constexpr char const* path_vertexShader_mirror = "content/shaders/vertex_mirror.shader";
-constexpr char const* path_fragmentShader_mirror = "content/shaders/fragment_mirror.shader";
 constexpr char const* path_meshResource = "content/mesh/";
 
 bool left_mouseBtn_drag = false;
@@ -265,7 +258,7 @@ void InitializeRenderTexture(cyGLRenderTexture2D& i_rtt)
 		assert( false );
 	}
 	i_rtt.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR );
-	assert( i_rtt.Resize( 3, screen_Width, screen_Height ) );
+	assert( i_rtt.Resize( 4, screen_Width, screen_Height ) );
 }
 
 void InitializeTextures( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
@@ -320,7 +313,6 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 	}
 	if (i_mesh.NVT() > 0)
 	{
-
 		std::vector<cyVec3f> vertices;
 		std::vector<cyVec3f> vertexNormals;
 		for (int i = 0; i < i_mesh.NF(); i++)
@@ -424,7 +416,6 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 
 void Display()
 {
-	//glViewport( 0, 0, screen_Width, screen_Height );
 	// Render the mirror mesh to a texture(rtt)
 	{
 		g_rtt_mirror.Bind();
@@ -435,6 +426,7 @@ void Display()
 		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
+		assert(glGetError() == GL_NO_ERROR);
 		glBindVertexArray( 0 );
 		g_rtt_mirror.Unbind();
 		assert( glGetError() == GL_NO_ERROR );
@@ -479,7 +471,6 @@ void Display()
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
-
 	}
 }
 
@@ -775,7 +766,7 @@ int main( int argc, char* argv[] )
 
 	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
 	InitializeMaterial( g_objMesh, g_meshShaderProgram );
-	InitializeTextures( g_objMesh, g_meshShaderProgram );
+	//InitializeTextures( g_objMesh, g_meshShaderProgram );
 
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_planeShaderProgram );

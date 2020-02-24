@@ -62,7 +62,7 @@ void main()
 		}
 		else
 		{
-			ambient = ambientColor * reflectEnvColor * mirroring;
+			ambient = ambientColor * reflectEnvColor * mirroringColor;
 			diffuse =  diff * diffuseColor * reflectEnvColor * mirroringColor;
 			specular = spec * specularColor * reflectEnvColor * mirroringColor;
 		}
