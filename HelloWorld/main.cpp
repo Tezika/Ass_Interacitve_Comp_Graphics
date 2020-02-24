@@ -14,7 +14,7 @@
 #include "lodepng.h"
 #include "Texture.h"
 
-//#define RENDER_TO_TEXTURE
+#define RENDER_TO_TEXTURE
 #define RENDER_SKYBOX
 #define USE_REFlECTION_SHADER
 
@@ -35,17 +35,18 @@ Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 cyGLRenderTexture2D g_rtt;
 
 cyGLSLProgram g_meshShaderProgram;
-cyGLSLProgram g_rttShaderProgram;
 cyGLSLProgram g_skyboxShaderProgram;
+cyGLSLProgram g_planeShaderProgram;
 
-cyTriMesh g_triMesh;
+cyTriMesh g_objMesh;
+cyTriMesh g_planeMesh;
 
 bool bRotateLight = false;
 bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 90.0f;
-float camera_distance = -50.0f;
+float camera_distance = -100.0f;
 
 float rtt_angle_yaw = 0;
 float rtt_angle_pitch = 0;
@@ -57,8 +58,8 @@ float rotation_pitch = 1.5f;
 float light_angle_yaw = 0.0f;
 float light_angle_pitch = 0.0f;
 
-constexpr float Screen_Width = 640;
-constexpr float Screen_Height = 480;
+float screen_Width = 640;
+float screen_Height = 480;
 
 constexpr char const* path_vertexShader_mesh = "content/shaders/vertex_mesh.shader";
 constexpr char const* path_fragmentShader_mesh = "content/shaders/fragment_mesh.shader";
@@ -91,15 +92,6 @@ const unsigned int g_quad_indices_data[] =
 	0,1,2,
 	2,3,0
 };
-
-//const GLfloat g_plane_buffer_data[] =
-//{
-//	// ndc pos         // UV
-//	-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-//	0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
-//	0.5f, 0.5f, 0.0f,  1.0f, 1.0f,
-//	-0.5f, 0.5f, 0.0f,  0.0f, 1.0f
-//};
 
 const unsigned int count_indices = 6;
 
@@ -260,21 +252,21 @@ void InitializeSkyBox()
 	assert( glGetError() == GL_NO_ERROR );
 }
 
-void InitializeMaterial()
+void InitializeMaterial( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 {
-	if (g_triMesh.NM() > 0)
+	if (i_mesh.NM() > 0)
 	{
-		g_meshShaderProgram.Bind();
-		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "diffuseColor" ), g_triMesh.M( 0 ).Kd[0], g_triMesh.M( 0 ).Kd[1], g_triMesh.M( 0 ).Kd[2] );
-		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "ambientColor" ), g_triMesh.M( 0 ).Ka[0], g_triMesh.M( 0 ).Ka[1], g_triMesh.M( 0 ).Ka[2] );
-		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "specularColor" ), g_triMesh.M( 0 ).Ks[0], g_triMesh.M( 0 ).Ks[1], g_triMesh.M( 0 ).Ks[2] );
+		i_shaderProgram.Bind();
+		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), i_mesh.M( 0 ).Kd[0], i_mesh.M( 0 ).Kd[1], i_mesh.M( 0 ).Kd[2] );
+		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), i_mesh.M( 0 ).Ka[0], i_mesh.M( 0 ).Ka[1], i_mesh.M( 0 ).Ka[2] );
+		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), i_mesh.M( 0 ).Ks[0], i_mesh.M( 0 ).Ks[1], i_mesh.M( 0 ).Ks[2] );
 	}
 	else
 	{
-		g_meshShaderProgram.Bind();
-		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "diffuseColor" ), 0.5f, 0.5, 0.5f );
-		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "ambientColor" ), 0.5f, 0.5f, 0.5f );
-		glUniform3f( glGetUniformLocation( g_meshShaderProgram.GetID(), "specularColor" ), 0.80099994f, 0.80099994f, 0.80099994f );
+		i_shaderProgram.Bind();
+		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), 0.5f, 0.5, 0.5f );
+		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), 0.5f, 0.5f, 0.5f );
+		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), 0.80099994f, 0.80099994f, 0.80099994f );
 	}
 }
 
@@ -285,43 +277,20 @@ void InitializeRenderTexture()
 		fprintf( stderr, "Cannot generate the renderToTexture." );
 		assert( false );
 	}
-	g_rtt.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR );
-	g_rtt.SetTextureMaxAnisotropy();
-	assert( g_rtt.Resize( 3, Screen_Width, Screen_Height ) );
-
-	CompileShaders( path_vertexShader_rtt, path_fragmentShader_rtt, g_rttShaderProgram );
-
-	// Generate the render to texture's vbo and vao
-	glGenVertexArrays( 1, &VAO_rtt );
-	glBindVertexArray( VAO_rtt );
-
-	glGenBuffers( 1, &VBO_plane );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO_plane );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
-	glEnableVertexAttribArray( 0 );
-	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
-	glEnableVertexAttribArray( 1 );
-
-	glGenBuffers( 1, &IBO_plane );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, IBO_plane );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof( unsigned int ) * count_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
-	assert( glGetError() == GL_NO_ERROR );
-
-	glBindVertexArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	g_rtt.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR );
+	assert( g_rtt.Resize( 4, screen_Width, screen_Height ) );
 }
 
-void InitializeTextures()
+void InitializeTextures( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 {
-	if (g_triMesh.NM() <= 0)
+	if (i_mesh.NM() <= 0)
 	{
 		return;
 	}
-	if (g_triMesh.M( 0 ).map_Kd != nullptr)
+	if (i_mesh.M( 0 ).map_Kd != nullptr)
 	{
 		std::string path_diffusesTex( path_meshResource );
-		path_diffusesTex += g_triMesh.M( 0 ).map_Kd;
+		path_diffusesTex += i_mesh.M( 0 ).map_Kd;
 		pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
 		if (!pDiffuseTex)
 		{
@@ -329,10 +298,10 @@ void InitializeTextures()
 			assert( false );
 		}
 	}
-	if (g_triMesh.M( 0 ).map_Ks != nullptr)
+	if (i_mesh.M( 0 ).map_Ks != nullptr)
 	{
 		std::string path_specularTex( path_meshResource );
-		path_specularTex += g_triMesh.M( 0 ).map_Ks;
+		path_specularTex += i_mesh.M( 0 ).map_Ks;
 		pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
 		if (!pSpecularTex)
 		{
@@ -340,16 +309,16 @@ void InitializeTextures()
 			assert( false );
 		}
 	}
-	g_meshShaderProgram.Bind();
-	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "tex_diff" ), 0 );
-	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "tex_spec" ), 1 );
+	i_shaderProgram.Bind();
+	glUniform1i( glGetUniformLocation( i_shaderProgram.GetID(), "tex_diff" ), 0 );
+	glUniform1i( glGetUniformLocation( i_shaderProgram.GetID(), "tex_spec" ), 1 );
 }
 
-void InitializeMesh( const char* i_objFileName )
+void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO, GLuint& i_VBO )
 {
 	std::string path_objFile( path_meshResource );
 	path_objFile += i_objFileName;
-	if (!g_triMesh.LoadFromFileObj( path_objFile.c_str(), true ))
+	if (!i_mesh.LoadFromFileObj( path_objFile.c_str(), true ))
 	{
 		fprintf( stderr, "Failed to load the %s.\n", i_objFileName );
 		assert( false );
@@ -358,48 +327,49 @@ void InitializeMesh( const char* i_objFileName )
 	{
 		fprintf( stdout, "Loaded the %s successfully.\n", i_objFileName );
 	}
-	if (!g_triMesh.IsBoundBoxReady())
+	if (!i_mesh.IsBoundBoxReady())
 	{
-		g_triMesh.ComputeBoundingBox();
+		i_mesh.ComputeBoundingBox();
 	}
-	if (g_triMesh.NVT() > 0)
+	if (i_mesh.NVT() > 0)
 	{
-		glGenVertexArrays( 1, &VAO );
+
 		std::vector<cyVec3f> vertices;
 		std::vector<cyVec3f> vertexNormals;
-		for (int i = 0; i < g_triMesh.NF(); i++)
+		for (int i = 0; i < i_mesh.NF(); i++)
 		{
-			auto triFace = g_triMesh.F( i );
+			auto triFace = i_mesh.F( i );
 			for (int j = 0; j < 3; j++)
 			{
-				vertices.push_back( g_triMesh.V( triFace.v[j] ) );
+				vertices.push_back( i_mesh.V( triFace.v[j] ) );
 			}
 		}
-		for (int i = 0; i < g_triMesh.NF(); i++)
+		for (int i = 0; i < i_mesh.NF(); i++)
 		{
-			auto curNormalFace = g_triMesh.FN( i );
+			auto curNormalFace = i_mesh.FN( i );
 			for (int j = 0; j < 3; j++)
 			{
-				vertexNormals.push_back( g_triMesh.VN( curNormalFace.v[j] ) );
+				vertexNormals.push_back( i_mesh.VN( curNormalFace.v[j] ) );
 			}
 		}
 		std::vector<cyVec2f> texCoords;
-		for (int i = 0; i < g_triMesh.NF(); i++)
+		for (int i = 0; i < i_mesh.NF(); i++)
 		{
-			auto curTexFace = g_triMesh.FT( i );
+			auto curTexFace = i_mesh.FT( i );
 			for (int j = 0; j < 3; j++)
 			{
-				texCoords.push_back( g_triMesh.VT( curTexFace.v[j] ).XY() );
+				texCoords.push_back( i_mesh.VT( curTexFace.v[j] ).XY() );
 			}
 		}
-		glBindVertexArray( VAO );
+		glGenVertexArrays( 1, &i_VAO );
+		glBindVertexArray( i_VAO );
 		assert( glGetError() == GL_NO_ERROR );
 		const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
 		const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
 		const auto sizeOfTexCoord = static_cast<GLsizei>(texCoords.size() * sizeof( cyVec2f ));
 		// For vertex data buffer
-		glGenBuffers( 1, &VBO );
-		glBindBuffer( GL_ARRAY_BUFFER, VBO );
+		glGenBuffers( 1, &i_VBO );
+		glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
 		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals + sizeOfTexCoord, NULL, GL_STATIC_DRAW );
 		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
 		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
@@ -421,32 +391,33 @@ void InitializeMesh( const char* i_objFileName )
 	}
 	else
 	{
-		glGenVertexArrays( 1, &VAO );
+
 		std::vector<cyVec3f> vertices;
 		std::vector<cyVec3f> vertexNormals;
-		for (int i = 0; i < g_triMesh.NF(); i++)
+		for (int i = 0; i < i_mesh.NF(); i++)
 		{
-			auto triFace = g_triMesh.F( i );
+			auto triFace = i_mesh.F( i );
 			for (int j = 0; j < 3; j++)
 			{
-				vertices.push_back( g_triMesh.V( triFace.v[j] ) );
+				vertices.push_back( i_mesh.V( triFace.v[j] ) );
 			}
 		}
-		for (int i = 0; i < g_triMesh.NF(); i++)
+		for (int i = 0; i < i_mesh.NF(); i++)
 		{
-			auto curNormalFace = g_triMesh.FN( i );
+			auto curNormalFace = i_mesh.FN( i );
 			for (int j = 0; j < 3; j++)
 			{
-				vertexNormals.push_back( g_triMesh.VN( curNormalFace.v[j] ) );
+				vertexNormals.push_back( i_mesh.VN( curNormalFace.v[j] ) );
 			}
 		}
-		glBindVertexArray( VAO );
+		glGenVertexArrays( 1, &i_VAO );
+		glBindVertexArray( i_VAO );
 		assert( glGetError() == GL_NO_ERROR );
 		const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
 		const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
 		// For vertex data buffer
-		glGenBuffers( 1, &VBO );
-		glBindBuffer( GL_ARRAY_BUFFER, VBO );
+		glGenBuffers( 1, &i_VBO );
+		glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
 		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, NULL, GL_STATIC_DRAW );
 		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
 		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
@@ -466,6 +437,7 @@ void InitializeMesh( const char* i_objFileName )
 
 void InitializePlane()
 {
+	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
 	// Generate the render to texture's vbo and vao
 	glGenVertexArrays( 1, &VAO_plane );
 	glBindVertexArray( VAO_plane );
@@ -489,9 +461,22 @@ void InitializePlane()
 
 void Display()
 {
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	//glViewport( 0, 0, screen_Width, screen_Height );
+	// Render the mirror mesh to a texture(rtt)
+	{
+		g_rtt.Bind();
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		g_meshShaderProgram.Bind();
+		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
+		glBindVertexArray( VAO );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
+		glBindVertexArray( 0 );
+		g_rtt.Unbind();
+		assert( glGetError() == GL_NO_ERROR );
+	}
 	// Draw the skybox
 	{
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		//glDepthFunc(GL_LEQUAL);
 		glDepthMask( GL_FALSE );
 		g_skyboxShaderProgram.Bind();
@@ -503,34 +488,32 @@ void Display()
 		glDepthMask( GL_TRUE );
 		//glDepthFunc(GL_LESS);
 	}
-
-	// Pass1 - render the scene
+	 // Render the scene
 	{
-#if defined(RENDER_TO_TEXTURE)
-		g_rtt.Bind();
-#endif
 		// Draw the scene
 #if not defined(USE_REFlECTION_SHADER)
 		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
 		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
 #endif
 		g_meshShaderProgram.Bind();
+		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
 		glBindVertexArray( VAO );
-		const GLvoid* const offset = 0;
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_triMesh.NF() );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
+	}
 
-#if defined(RENDER_TO_TEXTURE)
-		g_rtt.Unbind();
-#endif
-}
-
-	// Draw the plane
+	// Draw the plane by using the rtt
 	{
+		g_planeShaderProgram.Bind();
+		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "tex_cubemap" ), 0 );
+		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "tex_mirror" ), 1 );
+		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "mirroring" ), 1);
+		glActiveTexture( GL_TEXTURE1 );
+		glBindTexture( GL_TEXTURE_2D, g_rtt.GetTextureID() );
 		glBindVertexArray( VAO_plane );
-		glDrawElements( GL_TRIANGLES, count_indices, GL_UNSIGNED_INT, 0 );
-		assert( glGetError() == GL_NO_ERROR );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+		glBindVertexArray( 0 );
 	}
 }
 
@@ -548,7 +531,7 @@ void UpdateView()
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	mat_light.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
 
-	auto cameraTarget = (g_triMesh.GetBoundMax() + g_triMesh.GetBoundMin()) / 2;
+	auto cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
 	auto cameraPosition = cyVec3f( 0, 0, camera_distance );
 	auto cameraDir = (cameraTarget - cameraPosition).GetNormalized();
 	auto worldUp = cyVec3f( 0, 1, 0 );
@@ -565,7 +548,7 @@ void UpdateView()
 	mat_cameraTranslation.SetTranslation( cameraPosition );
 	mat_view = mat_cameraRotation * mat_cameraTranslation;
 
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), Screen_Width / Screen_Height, 0.1f, 100.0f );
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 0.1f, 1000.0f );
 	mat_modelToView = mat_view * mat_model;
 	auto mat_normalMatToView = mat_modelToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
@@ -575,14 +558,14 @@ void UpdateView()
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-
-#if defined(RENDER_TO_TEXTURE)
-	g_rttShaderProgram.Bind();
-	mat_rttRotation.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
-	glUniformMatrix4fv( glGetUniformLocation( g_rttShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_rttRotation.cell );
-	glUniform1f( glGetUniformLocation( g_rttShaderProgram.GetID(), "dis" ), s rtt_dis );
 	assert( glGetError() == GL_NO_ERROR );
-#endif
+
+	g_planeShaderProgram.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+	assert( glGetError() == GL_NO_ERROR );
 
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
@@ -795,7 +778,7 @@ int main( int argc, char* argv[] )
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
-	pWindow = glfwCreateWindow( Screen_Width, Screen_Height, "Hello World", NULL, NULL );
+	pWindow = glfwCreateWindow( screen_Width, screen_Height, "Hello World", NULL, NULL );
 	if (!pWindow)
 	{
 		glfwTerminate();
@@ -818,13 +801,19 @@ int main( int argc, char* argv[] )
 	glEnable( GL_TEXTURE_2D );
 #if defined(USE_REFlECTION_SHADER)
 	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
+	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
 #else
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
 #endif
 
-	InitializeMesh( argv[1] );
-	InitializeMaterial();
-	InitializeTextures();
+	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
+	InitializeMaterial( g_objMesh, g_meshShaderProgram );
+	InitializeTextures( g_objMesh, g_meshShaderProgram );
+
+	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
+	InitializeMaterial( g_planeMesh, g_planeShaderProgram );
+	//InitializeTextures( g_planeMesh, g_planeShaderProgram );
 
 #if defined(RENDER_TO_TEXTURE)
 	InitializeRenderTexture();
@@ -846,7 +835,6 @@ int main( int argc, char* argv[] )
 	}
 	// Release buffers and the shader program.
 	{
-
 		glDeleteVertexArrays( 1, &VAO );
 		glDeleteBuffers( 1, &VBO );
 		glDeleteBuffers( 1, &VAO_plane );
@@ -854,6 +842,7 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &IBO_plane );
 		assert( glGetError() == GL_NO_ERROR );
 		g_meshShaderProgram.Delete();
+		g_planeShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 		delete pDiffuseTex;
 		pDiffuseTex = nullptr;
@@ -865,7 +854,6 @@ int main( int argc, char* argv[] )
 		glDeleteVertexArrays( 1, &VAO_rtt );
 		glDeleteBuffers( 1, &VBO_rtt );
 		glDeleteBuffers( 1, &IBO_rtt );
-		g_rttShaderProgram.Delete();
 		g_rtt.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 #endif
@@ -873,10 +861,10 @@ int main( int argc, char* argv[] )
 #if defined(RENDER_SKYBOX)
 		glDeleteVertexArrays( 1, &VAO_cubemap );
 		glDeleteBuffers( 1, &VBO_cubemap );
+		g_skyboxShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 #endif
 	}
-
 	glfwTerminate();
 	return 0;
-	}
+}
