@@ -529,7 +529,7 @@ void UpdateView()
 	assert( glGetError() == GL_NO_ERROR );
 
 	g_planeShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, cyMatrix4f(1.0f).cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_model.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
