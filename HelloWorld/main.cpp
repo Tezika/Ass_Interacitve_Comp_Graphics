@@ -510,16 +510,18 @@ void UpdateView()
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	g_meshShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_model.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
 	assert( glGetError() == GL_NO_ERROR );
 
 	g_planeShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_modelToProjection" ), 1, GL_FALSE, mat_modelToProjection.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_modelToView" ), 1, GL_FALSE, mat_modelToView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalModelToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_model.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
 	assert( glGetError() == GL_NO_ERROR );
 
