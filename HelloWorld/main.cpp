@@ -40,7 +40,7 @@ bool bRotateLight = false;
 bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
-float camera_angle_pitch = 90.0f;
+float camera_angle_pitch = 0;
 float camera_distance = -100.0f;
 
 float rtt_angle_yaw = 0;
@@ -423,6 +423,11 @@ void Display()
 		g_meshShaderProgram.Bind();
 		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
 		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
+		auto matFlip = cyMatrix4f::Scale( cyVec3f( 1.0f, 1.0f, -1.0f ) );
+		auto matTranslation = cyMatrix4f( 1.0f );
+		matTranslation.SetRotationXYZ(glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0);
+		auto mat_reflect_model = matTranslation.GetInverse() * matFlip * matTranslation;
+		glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_reflect_model.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert(glGetError() == GL_NO_ERROR);
@@ -453,6 +458,9 @@ void Display()
 		g_meshShaderProgram.Bind();
 		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
 		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
+		auto matTranslation = cyMatrix4f( 1.0f );
+		matTranslation.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+		glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, matTranslation.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -484,6 +492,9 @@ void UpdateView()
 	auto mat_rttTranslation = cyMatrix4f( 1.0f );
 	auto mat_rttRotation = cyMatrix4f( 1.0f );
 
+	//auto mat_flip = cyMatrix4f( 1.0f ).Scale( cyVec3f( 1.0f, -1.0f, 1.0f ) );
+	//mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+	//mat_model = mat_model * mat_flip;
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	mat_light.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
 
@@ -518,7 +529,7 @@ void UpdateView()
 	assert( glGetError() == GL_NO_ERROR );
 
 	g_planeShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_model.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, cyMatrix4f(1.0f).cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
