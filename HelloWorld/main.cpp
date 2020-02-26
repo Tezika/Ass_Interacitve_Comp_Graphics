@@ -250,7 +250,7 @@ void InitializeMaterial( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 	}
 }
 
-void InitializeRenderTexture(cyGLRenderTexture2D& i_rtt)
+void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 {
 	if (!i_rtt.Initialize( true ))
 	{
@@ -423,14 +423,14 @@ void Display()
 		g_meshShaderProgram.Bind();
 		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
 		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
-		auto matFlip = cyMatrix4f::Scale( cyVec3f( 1.0f, 1.0f, -1.0f ) );
+		auto matFlip = cyMatrix4f::Scale( cyVec3f( 1.0f, -1.0f, 1.0f ) );
 		auto matTranslation = cyMatrix4f( 1.0f );
-		matTranslation.SetRotationXYZ(glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0);
-		auto mat_reflect_model = matTranslation.GetInverse() * matFlip * matTranslation;
+		matTranslation.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+		auto mat_reflect_model = matTranslation * matFlip;
 		glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_reflect_model.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-		assert(glGetError() == GL_NO_ERROR);
+		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 		g_rtt_mirror.Unbind();
 		assert( glGetError() == GL_NO_ERROR );
@@ -448,7 +448,7 @@ void Display()
 		glDrawArrays( GL_TRIANGLES, 0, 36 );
 		glDepthMask( GL_TRUE );
 	}
-	 // Render the scene
+	// Render the scene
 	{
 		// Draw the scene
 #if not defined(USE_REFlECTION_SHADER)
@@ -529,7 +529,7 @@ void UpdateView()
 	assert( glGetError() == GL_NO_ERROR );
 
 	g_planeShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_model.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, cyMatrix4f(1.0f).cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
@@ -784,7 +784,7 @@ int main( int argc, char* argv[] )
 	InitializeMaterial( g_planeMesh, g_planeShaderProgram );
 
 #if defined(RENDER_TO_TEXTURE)
-	InitializeRenderTexture(g_rtt_mirror);
+	InitializeRenderTexture( g_rtt_mirror );
 #endif
 
 #if defined(RENDER_SKYBOX)
