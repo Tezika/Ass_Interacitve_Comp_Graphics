@@ -311,6 +311,7 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 	{
 		i_mesh.ComputeBoundingBox();
 	}
+	i_mesh.ComputeNormals();
 	if (i_mesh.NVT() > 0)
 	{
 		std::vector<cyVec3f> vertices;

@@ -1,7 +1,6 @@
 #include "Texture.h"
 #include "assert.h"
 #include "lodepng.h"
-
 namespace
 {
 	void LoadTextureData( const char* i_texturePath, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
