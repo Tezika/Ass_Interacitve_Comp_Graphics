@@ -519,7 +519,8 @@ void UpdateView()
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 0.1f, 1000.0f );
 	mat_modelToView = mat_view * mat_model;
 	auto mat_normalModelToView = mat_modelToView.GetInverse().GetTranspose();
-	auto mat_normalPlaneTovView = (mat_view * mat_plane).GetInverse().GetTranspose();
+	auto mat_planeToView = mat_view * mat_plane;
+	auto mat_normalPlaneTovView = mat_planeToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	g_meshShaderProgram.Bind();
