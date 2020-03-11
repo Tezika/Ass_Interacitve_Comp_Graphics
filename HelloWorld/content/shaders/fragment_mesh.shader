@@ -19,6 +19,7 @@ uniform vec3 diffuseColor;
 uniform vec3 ambientColor;
 uniform vec3 specularColor;
 uniform vec3 emitColor;
+uniform int  texturing;
 
 // Entry Point
 //============
@@ -35,10 +36,20 @@ void main()
 	vec3 halfDir = normalize( lightPos + viewDir);
 	float specAngle = max(dot(halfDir, normal), 0.0);
 	spec = pow(specAngle, 16.0);
-
-	vec3 ambient = ambientColor * vec3(texture(tex_diff, texCoord));
-	vec3 diffuse =  diffuseColor * diff * vec3(texture(tex_diff, texCoord));
-	vec3 specular = specularColor * spec * vec3( texture(tex_spec, texCoord));
-
+	vec3 ambient;
+	vec3 diffuse;
+	vec3 specular;
+	if(texturing == 1)
+	{
+		ambient = ambientColor * vec3(texture(tex_diff, texCoord));
+		diffuse =  diffuseColor * diff * vec3(texture(tex_diff, texCoord));
+		specular = specularColor * spec * vec3( texture(tex_spec, texCoord));
+	}
+	else
+	{
+		ambient = ambientColor;
+		diffuse =  diffuseColor * diff;
+		specular = specularColor * spec;
+	}
 	o_color = vec4( ambient + diffuse + specular, 1);
 }

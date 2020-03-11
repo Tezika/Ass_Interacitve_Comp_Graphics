@@ -258,7 +258,13 @@ void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 		assert( false );
 	}
 	i_rtt.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR );
-	assert( i_rtt.Resize( 4, screen_Width, screen_Height ) );
+	i_rtt.BuildTextureMipmaps();
+	i_rtt.SetTextureMaxAnisotropy();
+	if (!i_rtt.Resize( 4, screen_Width, screen_Height ))
+	{
+		fprintf( stderr, "Cannot resize the renderToTexture." );
+		assert( false );
+	}
 }
 
 void InitializeTextures( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
@@ -492,10 +498,9 @@ void UpdateView()
 	auto mat_modelToView = cyMatrix4f( 1.0f );
 	auto mat_rttTranslation = cyMatrix4f( 1.0f );
 	auto mat_rttRotation = cyMatrix4f( 1.0f );
+	auto mat_plane = cyMatrix4f( 1.0f );
 
-	//auto mat_flip = cyMatrix4f( 1.0f ).Scale( cyVec3f( 1.0f, -1.0f, 1.0f ) );
-	//mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-	//mat_model = mat_model * mat_flip;
+	mat_plane.SetTranslation( cyVec3f( 0, -10.0f, 0 ) );
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	mat_light.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
 
@@ -515,25 +520,28 @@ void UpdateView()
 	auto mat_cameraTranslation = cyMatrix4f( 1.0f );
 	mat_cameraTranslation.SetTranslation( cameraPosition );
 	mat_view = mat_cameraRotation * mat_cameraTranslation;
+	auto mat_view_plane = mat_cameraRotation;
 
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 0.1f, 1000.0f );
 	mat_modelToView = mat_view * mat_model;
-	auto mat_normalMatToView = mat_modelToView.GetInverse().GetTranspose();
+	auto mat_normalModelToView = mat_modelToView.GetInverse().GetTranspose();
+	auto mat_planeToView = mat_view * mat_plane;
+	auto mat_normalPlaneTovView = mat_planeToView.GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	g_meshShaderProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_model.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalModelToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
 	assert( glGetError() == GL_NO_ERROR );
 
 	g_planeShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, cyMatrix4f(1.0f).cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_plane.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalMatToView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalPlaneTovView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
 	assert( glGetError() == GL_NO_ERROR );
 
@@ -779,7 +787,6 @@ int main( int argc, char* argv[] )
 
 	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
 	InitializeMaterial( g_objMesh, g_meshShaderProgram );
-	//InitializeTextures( g_objMesh, g_meshShaderProgram );
 
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_planeShaderProgram );
@@ -806,7 +813,7 @@ int main( int argc, char* argv[] )
 	{
 		glDeleteVertexArrays( 1, &VAO );
 		glDeleteBuffers( 1, &VBO );
-		glDeleteBuffers( 1, &VAO_plane );
+		glDeleteVertexArrays( 1, &VAO_plane );
 		glDeleteBuffers( 1, &VBO_plane );
 		assert( glGetError() == GL_NO_ERROR );
 		g_meshShaderProgram.Delete();
