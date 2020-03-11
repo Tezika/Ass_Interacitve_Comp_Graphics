@@ -492,11 +492,13 @@ void UpdateView()
 	auto mat_modelToView = cyMatrix4f( 1.0f );
 	auto mat_rttTranslation = cyMatrix4f( 1.0f );
 	auto mat_rttRotation = cyMatrix4f( 1.0f );
+	auto mat_plane = cyMatrix4f( 1.0f );
 
+	mat_plane.SetTranslation( cyVec3f( 0, -10.0f, 0 ) );
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	mat_light.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
 
-	auto cameraTarget = (g_planeMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+	auto cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
 	auto cameraPosition = cyVec3f( 0, 0, camera_distance );
 	auto cameraDir = (cameraTarget - cameraPosition).GetNormalized();
 	auto worldUp = cyVec3f( 0, 1, 0 );
@@ -517,7 +519,7 @@ void UpdateView()
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 0.1f, 1000.0f );
 	mat_modelToView = mat_view * mat_model;
 	auto mat_normalModelToView = mat_modelToView.GetInverse().GetTranspose();
-	auto mat_normalPlaneTovView = (mat_view * cyMatrix4f( 1.0f )).GetInverse().GetTranspose();
+	auto mat_normalPlaneTovView = (mat_view * mat_plane).GetInverse().GetTranspose();
 	mat_modelToProjection = mat_perspective * mat_view * mat_model;
 
 	g_meshShaderProgram.Bind();
@@ -529,7 +531,7 @@ void UpdateView()
 	assert( glGetError() == GL_NO_ERROR );
 
 	g_planeShaderProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, cyMatrix4f(1.0f).cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_plane.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalPlaneTovView.cell );
