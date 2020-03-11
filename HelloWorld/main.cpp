@@ -781,7 +781,6 @@ int main( int argc, char* argv[] )
 
 	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
 	InitializeMaterial( g_objMesh, g_meshShaderProgram );
-	//InitializeTextures( g_objMesh, g_meshShaderProgram );
 
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_planeShaderProgram );
@@ -808,7 +807,7 @@ int main( int argc, char* argv[] )
 	{
 		glDeleteVertexArrays( 1, &VAO );
 		glDeleteBuffers( 1, &VBO );
-		glDeleteBuffers( 1, &VAO_plane );
+		glDeleteVertexArrays( 1, &VAO_plane );
 		glDeleteBuffers( 1, &VBO_plane );
 		assert( glGetError() == GL_NO_ERROR );
 		g_meshShaderProgram.Delete();
