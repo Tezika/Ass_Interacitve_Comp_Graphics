@@ -258,7 +258,13 @@ void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 		assert( false );
 	}
 	i_rtt.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR );
-	assert( i_rtt.Resize( 4, screen_Width, screen_Height ) );
+	i_rtt.BuildTextureMipmaps();
+	i_rtt.SetTextureMaxAnisotropy();
+	if (!i_rtt.Resize( 4, screen_Width, screen_Height ))
+	{
+		fprintf( stderr, "Cannot resize the renderToTexture." );
+		assert( false );
+	}
 }
 
 void InitializeTextures( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
