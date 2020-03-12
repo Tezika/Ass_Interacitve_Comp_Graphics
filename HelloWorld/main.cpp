@@ -15,7 +15,7 @@
 #include "Texture.h"
 
 #define RENDER_TO_TEXTURE
-#define RENDER_SKYBOX
+//#define RENDER_SKYBOX
 #define USE_REFlECTION_SHADER
 
 GLuint VAO;
@@ -423,38 +423,39 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 void Display()
 {
 	// Render the mirror mesh to a texture(rtt)
-	{
-		g_rtt_mirror.Bind();
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
-		g_meshShaderProgram.Bind();
-		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
-		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
-		auto matFlip = cyMatrix4f::Scale( cyVec3f( 1.0f, -1.0f, 1.0f ) );
-		auto matTranslation = cyMatrix4f( 1.0f );
-		matTranslation.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-		auto mat_reflect_model = matTranslation * matFlip;
-		glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_reflect_model.cell );
-		glBindVertexArray( VAO );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
-		g_rtt_mirror.Unbind();
-		assert( glGetError() == GL_NO_ERROR );
-	}
+	//{
+	//	g_rtt_mirror.Bind();
+	//	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	//	glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
+	//	g_meshShaderProgram.Bind();
+	//	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
+	//	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
+	//	auto matFlip = cyMatrix4f::Scale( cyVec3f( 1.0f, -1.0f, 1.0f ) );
+	//	auto matTranslation = cyMatrix4f( 1.0f );
+	//	matTranslation.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+	//	auto mat_reflect_model = matTranslation * matFlip;
+	//	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_reflect_model.cell );
+	//	glBindVertexArray( VAO );
+	//	glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
+	//	assert( glGetError() == GL_NO_ERROR );
+	//	glBindVertexArray( 0 );
+	//	g_rtt_mirror.Unbind();
+	//	assert( glGetError() == GL_NO_ERROR );
+	//}
 	// Draw the skybox
-	{
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		//glDepthFunc(GL_LEQUAL);
-		glDepthMask( GL_FALSE );
-		g_skyboxShaderProgram.Bind();
-		// ... set view and projection matrix
-		glBindVertexArray( VAO_cubemap );
-		glActiveTexture( GL_TEXTURE0 );
-		glBindTexture( GL_TEXTURE_CUBE_MAP, Tex_cubemap );
-		glDrawArrays( GL_TRIANGLES, 0, 36 );
-		glDepthMask( GL_TRUE );
-	}
+	//{
+	//	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	//	//glDepthFunc(GL_LEQUAL);
+	//	glDepthMask( GL_FALSE );
+	//	g_skyboxShaderProgram.Bind();
+	//	// ... set view and projection matrix
+	//	glBindVertexArray( VAO_cubemap );
+	//	glActiveTexture( GL_TEXTURE0 );
+	//	glBindTexture( GL_TEXTURE_CUBE_MAP, Tex_cubemap );
+	//	glDrawArrays( GL_TRIANGLES, 0, 36 );
+	//	glDepthMask( GL_TRUE );
+	//}
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	// Render the scene
 	{
 		// Draw the scene
@@ -463,11 +464,6 @@ void Display()
 		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
 #endif
 		g_meshShaderProgram.Bind();
-		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
-		glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
-		auto matTranslation = cyMatrix4f( 1.0f );
-		matTranslation.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-		glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, matTranslation.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -476,11 +472,6 @@ void Display()
 	// Draw the plane for reflection
 	{
 		g_planeShaderProgram.Bind();
-		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "environment" ), 1 );
-		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "mirroring" ), 1 );
-		glUniform1i( glGetUniformLocation( g_planeShaderProgram.GetID(), "tex_mirror" ), 1 );
-		glActiveTexture( GL_TEXTURE1 );
-		glBindTexture( GL_TEXTURE_2D, g_rtt_mirror.GetTextureID() );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -778,8 +769,8 @@ int main( int argc, char* argv[] )
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 #if defined(USE_REFlECTION_SHADER)
-	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
-	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
 #else
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
