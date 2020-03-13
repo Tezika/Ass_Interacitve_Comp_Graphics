@@ -37,7 +37,7 @@ void main()
 	normalInterp = vec3(normalInterp4) / normalInterp4.w;
 	vec4 vertexPos4 = mat_view * mat_model * vec4(i_vertexPosition_local, 1);
 	vertexPos = vec3(vertexPos4) / vertexPos4.w;
-	vec4 lightPos4 = mat_lightTransformation * vec4(light_ndcPos, 1.0);
+	vec4 lightPos4 = mat_lightTransformation * vec4(0.0, 0.0, 0.0, 1.0);
 	lightPos = vec3(lightPos4)/lightPos4.w;
 	texCoord = i_texCoord;
 }

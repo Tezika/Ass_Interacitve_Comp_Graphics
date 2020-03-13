@@ -38,7 +38,7 @@ cyGLSLProgram g_planeShaderProgram;
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
 
-cyVec3f g_ligtPosNdc = cyVec3f( 1.0f, 1.0f, 1.0f );
+cyVec3f g_ligtPosInWorld = cyVec3f( 1.0f, 2.0f, 1.0f );
 
 bool bRotateLight = false;
 bool bControlTheRtt = false;
@@ -527,7 +527,12 @@ void UpdateView()
 
 	mat_plane.SetTranslation( cyVec3f( 0, -10.0f, 0 ) );
 	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-	mat_light.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
+
+	auto mat_ligt_rot = cyMatrix4f( 1.0f );
+	mat_ligt_rot.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
+	auto mat_ligt_trans = cyMatrix4f( 1.0f );
+	mat_ligt_trans.SetTranslation( g_ligtPosInWorld );
+	mat_light = mat_ligt_rot * mat_ligt_trans;
 
 	auto cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
 	auto cameraPosition = cyVec3f( 0, 0, camera_distance );
@@ -560,7 +565,7 @@ void UpdateView()
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalModelToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	glUniform3fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "light_ndcPos" ), 1, &g_ligtPosNdc.elem[0] );
+	//glUniform3fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "light_ndcPos" ), 1, &g_ligtPosNdc.elem[0] );
 	assert( glGetError() == GL_NO_ERROR ); 
 
 	g_planeShaderProgram.Bind();
@@ -569,7 +574,7 @@ void UpdateView()
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalPlaneTovView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	glUniform3fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "light_ndcPos" ), 1, &g_ligtPosNdc.elem[0] );
+	//glUniform3fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "light_ndcPos" ), 1, &g_ligtPosNdc.elem[0] );
 	assert( glGetError() == GL_NO_ERROR );
 
 #if defined(RENDER_SKYBOX)
