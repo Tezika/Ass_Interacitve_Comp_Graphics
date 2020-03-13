@@ -134,10 +134,10 @@ const float g_skyboxVertices[] = {
 const GLfloat g_quad_buffer_data[] =
 {
 	// ndc pos         // UV
-	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	1.0f,  -1.0f, 0.0f,  1.0f, 0.0f,
-	1.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-	-1.0f, 1.0f,  0.0f,  0.0f, 1.0f
+	-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+	0.5f,  -0.5f, 0.0f,  1.0f, 0.0f,
+	0.5f,  0.5f,  0.0f,  1.0f, 1.0f,
+	-0.5f, 0.5f,  0.0f,  0.0f, 1.0f
 };
 
 const unsigned int g_quad_indices_data[] =
@@ -551,9 +551,9 @@ void Display()
 	{
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		g_quadShaderProgram.Bind();
-
-		//glActiveTexture( GL_TEXTURE1 );
-		//glBindTexture( GL_TEXTURE_2D, g_renderDepth.GetTextureID() );
+		glUniform1i( glGetUniformLocation( g_quadShaderProgram.GetID(), "tex_render" ), 0 );
+		glActiveTexture( GL_TEXTURE0 );
+		glBindTexture( GL_TEXTURE_2D, g_renderDepth.GetTextureID() );
 
 		glBindVertexArray( VAO_quad );
 		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(count_quad_indices), GL_UNSIGNED_INT, 0 );
@@ -577,8 +577,8 @@ void UpdateLight()
 	mat_light = mat_ligt_rot * mat_ligt_trans;
 
 	auto lightTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
-
 	auto lightDir = (lightTarget - g_ligtPosInWorld).GetNormalized();
+
 	auto worldUp = cyVec3f( 0, 1, 0 );
 	auto lightSpace_right = worldUp.Cross( lightDir ).GetNormalized();
 	auto lightSpace_up = lightDir.Cross( lightSpace_right ).GetNormalized();
@@ -589,14 +589,18 @@ void UpdateLight()
 	mat_ligthtSpace_rot.SetRow( 2, lightDir.x, lightDir.y, lightDir.z, 0 );
 	mat_ligthtSpace_rot.SetRow( 3, 0, 0, 0, 1 );
 
-	auto mat_lightSpace_trans = mat_ligthtSpace_rot * mat_ligt_trans;
+	auto mat_perspective = cyMatrix4f( 1.0f );
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 2.0f, 1000.0f );
+
+	auto mat_lightSpace =  mat_perspective * mat_ligthtSpace_rot * mat_ligt_trans;
 
 	g_meshShaderProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace_trans.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+
 	g_planeShaderProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace_trans.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
 }
 
 void UpdateModels()
