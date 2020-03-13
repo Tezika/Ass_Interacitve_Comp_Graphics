@@ -25,6 +25,10 @@ GLuint VBO;
 GLuint VAO_plane;
 GLuint VBO_plane;
 
+GLuint VAO_quad;
+GLuint VBO_quad;
+GLuint EBO_quad;
+
 Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 
@@ -34,11 +38,12 @@ cyGLRenderDepth2D g_renderDepth;
 cyGLSLProgram g_meshShaderProgram;
 cyGLSLProgram g_skyboxShaderProgram;
 cyGLSLProgram g_planeShaderProgram;
+cyGLSLProgram g_quadShaderProgram;
 
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
 
-cyVec3f g_ligtPosInWorld = cyVec3f( 1.0f, 2.0f, 1.0f );
+cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, 100.0f, 0.0f );
 
 bool bRotateLight = false;
 bool bControlTheRtt = false;
@@ -63,8 +68,8 @@ float screen_Height = 480;
 constexpr char const* path_vertexShader_mesh = "content/shaders/vertex_mesh.shader";
 constexpr char const* path_fragmentShader_mesh = "content/shaders/fragment_mesh.shader";
 
-constexpr char const* path_vertexShader_rtt = "content/shaders/vertex_rtt.shader";
-constexpr char const* path_fragmentShader_rtt = "content/shaders/fragment_rtt.shader";
+constexpr char const* path_vertexShader_quad = "content/shaders/vertex_quad_texture.shader";
+constexpr char const* path_fragmentShader_quad = "content/shaders/fragment_quad_texture.shader";
 
 constexpr char const* path_vertexShader_skybox = "content/shaders/vertex_skybox.shader";
 constexpr char const* path_fragmentShader_skybox = "content/shaders/fragment_skybox.shader";
@@ -76,8 +81,6 @@ constexpr char const* path_meshResource = "content/mesh/";
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
-
-const unsigned int count_indices = 6;
 
 GLuint VAO_cubemap;
 GLuint VBO_cubemap;
@@ -127,6 +130,23 @@ const float g_skyboxVertices[] = {
 	-1.0f, -1.0f,  1.0f,
 	 1.0f, -1.0f,  1.0f
 };
+
+const GLfloat g_quad_buffer_data[] =
+{
+	// ndc pos         // UV
+	-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+	1.0f,  -1.0f, 0.0f,  1.0f, 0.0f,
+	1.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+	-1.0f, 1.0f,  0.0f,  0.0f, 1.0f
+};
+
+const unsigned int g_quad_indices_data[] =
+{
+	0,1,2,
+	2,3,0
+};
+
+const unsigned int count_quad_indices = 6;
 
 namespace
 {
@@ -273,7 +293,8 @@ void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 
 void InitializeDepthMap( cyGLRenderDepth2D& i_renderDepth2D )
 {
-	if (!i_renderDepth2D.Initialize( true ))
+	// Do not initialize it as a render depth texture to text it.
+	if (!i_renderDepth2D.Initialize( false ))
 	{
 		fprintf( stderr, "Failed to generate the render depth texture." );
 		assert( false );
@@ -439,16 +460,35 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 	}
 }
 
+void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
+{
+	// Generate the render to texture's vbo and vao
+	glGenVertexArrays( 1, &i_VAO );
+	glBindVertexArray( i_VAO );
+
+	glGenBuffers( 1, &i_VBO );
+	glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
+	glEnableVertexAttribArray( 0 );
+	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
+	glEnableVertexAttribArray( 1 );
+
+	glGenBuffers( 1, &i_EBO );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, i_EBO );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof( unsigned int ) * count_quad_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
+	assert( glGetError() == GL_NO_ERROR );
+
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+}
+
 void RenderScene()
 {
 	// Draw the teapot
 	{
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		// Draw the scene
-#if not defined(USE_REFlECTION_SHADER)
-		//pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
-		//pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
-#endif
 		g_meshShaderProgram.Bind();
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
@@ -504,35 +544,76 @@ void Display()
 	// Render the scene to the shadow map from the light perspective
 	{
 		g_renderDepth.Bind();
-
+		RenderScene();
 		g_renderDepth.Unbind();
 	}
 
 	{
-		RenderScene();
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		g_quadShaderProgram.Bind();
+
+		//glActiveTexture( GL_TEXTURE1 );
+		//glBindTexture( GL_TEXTURE_2D, g_renderDepth.GetTextureID() );
+
+		glBindVertexArray( VAO_quad );
+		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(count_quad_indices), GL_UNSIGNED_INT, 0 );
+		glBindVertexArray( 0 );
 	}
+	assert( glGetError() == GL_NO_ERROR );
 }
 
-void UpdateView()
+void UpdateCamera()
 {
-	auto mat_model = cyMatrix4f( 1.0f );
+
+}
+
+void UpdateLight()
+{
 	auto mat_light = cyMatrix4f( 1.0f );
-	auto mat_view = cyMatrix4f( 1.0f );
-	auto mat_perspective = cyMatrix4f( 1.0f );
-	auto mat_modelToProjection = cyMatrix4f( 1.0f );
-	auto mat_modelToView = cyMatrix4f( 1.0f );
-	auto mat_rttTranslation = cyMatrix4f( 1.0f );
-	auto mat_rttRotation = cyMatrix4f( 1.0f );
-	auto mat_plane = cyMatrix4f( 1.0f );
-
-	mat_plane.SetTranslation( cyVec3f( 0, -10.0f, 0 ) );
-	mat_model.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-
 	auto mat_ligt_rot = cyMatrix4f( 1.0f );
 	mat_ligt_rot.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
 	auto mat_ligt_trans = cyMatrix4f( 1.0f );
 	mat_ligt_trans.SetTranslation( g_ligtPosInWorld );
 	mat_light = mat_ligt_rot * mat_ligt_trans;
+
+	auto lightTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+
+	auto lightDir = (lightTarget - g_ligtPosInWorld).GetNormalized();
+	auto worldUp = cyVec3f( 0, 1, 0 );
+	auto lightSpace_right = worldUp.Cross( lightDir ).GetNormalized();
+	auto lightSpace_up = lightDir.Cross( lightSpace_right ).GetNormalized();
+
+	auto mat_ligthtSpace_rot = cyMatrix4f( 1.0f );
+	mat_ligthtSpace_rot.SetRow( 0, lightSpace_right.x, lightSpace_right.y, lightSpace_right.z, 0 );
+	mat_ligthtSpace_rot.SetRow( 1, lightSpace_up.x, lightSpace_up.y, lightSpace_up.z, 0 );
+	mat_ligthtSpace_rot.SetRow( 2, lightDir.x, lightDir.y, lightDir.z, 0 );
+	mat_ligthtSpace_rot.SetRow( 3, 0, 0, 0, 1 );
+
+	auto mat_lightSpace_trans = mat_ligthtSpace_rot * mat_ligt_trans;
+
+	g_meshShaderProgram.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace_trans.cell );
+	g_planeShaderProgram.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace_trans.cell );
+}
+
+void UpdateModels()
+{
+	auto mat_model = cyMatrix4f( 1.0f );
+	auto mat_view = cyMatrix4f( 1.0f );
+	auto mat_perspective = cyMatrix4f( 1.0f );
+	auto mat_modelToView = cyMatrix4f( 1.0f );
+	auto mat_plane = cyMatrix4f( 1.0f );
+
+	mat_plane.SetTranslation( cyVec3f( 0, -10.0f, 0 ) );
+	auto mat_model_rot = cyMatrix4f( 1.0f );
+	mat_model_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+
+	auto mat_model_trans = cyMatrix4f( 1.0f );
+	mat_model_trans.SetTranslation( cyVec3f( 0, 2.0f, 0 ) );
+	mat_model = mat_model_rot * mat_model_trans;
 
 	auto cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
 	auto cameraPosition = cyVec3f( 0, 0, camera_distance );
@@ -550,33 +631,30 @@ void UpdateView()
 	auto mat_cameraTranslation = cyMatrix4f( 1.0f );
 	mat_cameraTranslation.SetTranslation( cameraPosition );
 	mat_view = mat_cameraRotation * mat_cameraTranslation;
-	auto mat_view_plane = mat_cameraRotation;
 
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 0.1f, 1000.0f );
-	mat_modelToView = mat_view * mat_model;
-	auto mat_normalModelToView = mat_modelToView.GetInverse().GetTranspose();
-	auto mat_planeToView = mat_view * mat_plane;
-	auto mat_normalPlaneTovView = mat_planeToView.GetInverse().GetTranspose();
-	mat_modelToProjection = mat_perspective * mat_view * mat_model;
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 2.0f, 1000.0f );
+	auto mat_normalModelToView = (mat_view * mat_model).GetInverse().GetTranspose();
+	auto mat_normalPlaneTovView = (mat_view * mat_plane).GetInverse().GetTranspose();
 
 	g_meshShaderProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_model.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalModelToView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	//glUniform3fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "light_ndcPos" ), 1, &g_ligtPosNdc.elem[0] );
-	assert( glGetError() == GL_NO_ERROR ); 
+	assert( glGetError() == GL_NO_ERROR );
 
 	g_planeShaderProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_plane.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalPlaneTovView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	//glUniform3fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "light_ndcPos" ), 1, &g_ligtPosNdc.elem[0] );
 	assert( glGetError() == GL_NO_ERROR );
 
+	g_quadShaderProgram.Bind();
+	auto mat_quad_rot = cyMatrix4f( 1.0f );
+	mat_quad_rot.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
+	glUniformMatrix4fv( glGetUniformLocation( g_quadShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
+	glUniform1f( glGetUniformLocation( g_quadShaderProgram.GetID(), "dis" ), 1.0f );
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
 	// Removed the translation from the view matrix
@@ -777,6 +855,7 @@ int main( int argc, char* argv[] )
 	if (argc < 2)
 	{
 		fprintf( stderr, "Please enter the .obj file name as the argument.\n" );
+		system( "pause" );
 		return -1;
 	}
 	GLFWwindow* pWindow;
@@ -825,6 +904,8 @@ int main( int argc, char* argv[] )
 	InitializeMaterial( g_planeMesh, g_planeShaderProgram );
 
 #if defined(RENDER_SHADOW)
+	CompileShaders( path_vertexShader_quad, path_fragmentShader_quad, g_quadShaderProgram );
+	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
 	InitializeDepthMap( g_renderDepth );
 #endif
 
@@ -839,7 +920,8 @@ int main( int argc, char* argv[] )
 	while (!glfwWindowShouldClose( pWindow ))
 	{
 		UpdateMouseInput( pWindow );
-		UpdateView();
+		UpdateLight();
+		UpdateModels();
 		Display();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
@@ -873,6 +955,17 @@ int main( int argc, char* argv[] )
 		g_skyboxShaderProgram.Delete();
 		assert( glGetError() == GL_NO_ERROR );
 #endif
+
+#if defined(RENDER_SHADOW)
+		g_renderDepth.Delete();
+		glDeleteVertexArrays( 1, &VAO_quad );
+		glDeleteBuffers( 1, &VBO_quad );
+		glDeleteBuffers( 1, &EBO_quad );
+#endif
+		if (glGetError() != GL_NO_ERROR)
+		{
+			assert( false );
+		}
 	}
 	glfwTerminate();
 	return 0;
