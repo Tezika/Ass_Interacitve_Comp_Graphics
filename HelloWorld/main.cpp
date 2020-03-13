@@ -14,9 +14,10 @@
 #include "lodepng.h"
 #include "Texture.h"
 
-#define RENDER_TO_TEXTURE
+//#define RENDER_TO_TEXTURE
 //#define RENDER_SKYBOX
-#define USE_REFlECTION_SHADER
+//#define USE_REFlECTION_SHADER
+#define RENDER_SHADOW
 
 GLuint VAO;
 GLuint VBO;
@@ -28,6 +29,7 @@ Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
 Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 
 cyGLRenderTexture2D g_rtt_mirror;
+cyGLRenderDepth2D g_renderDepth;
 
 cyGLSLProgram g_meshShaderProgram;
 cyGLSLProgram g_skyboxShaderProgram;
@@ -35,6 +37,8 @@ cyGLSLProgram g_planeShaderProgram;
 
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
+
+cyVec3f g_ligtPosNdc = cyVec3f( 1.0f, 1.0f, 1.0f );
 
 bool bRotateLight = false;
 bool bControlTheRtt = false;
@@ -267,6 +271,21 @@ void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 	}
 }
 
+void InitializeDepthMap( cyGLRenderDepth2D& i_renderDepth2D )
+{
+	if (!i_renderDepth2D.Initialize( true ))
+	{
+		fprintf( stderr, "Failed to generate the render depth texture." );
+		assert( false );
+	}
+	i_renderDepth2D.SetTextureFilteringMode( GL_NEAREST, GL_NEAREST );
+	if (!i_renderDepth2D.Resize( screen_Width, screen_Height ))
+	{
+		fprintf( stderr, "Cannot resize the render depth." );
+		assert( false );
+	}
+}
+
 void InitializeTextures( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 {
 	if (i_mesh.NM() <= 0)
@@ -420,6 +439,32 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 	}
 }
 
+void RenderScene()
+{
+	// Draw the teapot
+	{
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		// Draw the scene
+#if not defined(USE_REFlECTION_SHADER)
+		//pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
+		//pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
+#endif
+		g_meshShaderProgram.Bind();
+		glBindVertexArray( VAO );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
+		assert( glGetError() == GL_NO_ERROR );
+		glBindVertexArray( 0 );
+	}
+	// Draw the plane 
+	{
+		g_planeShaderProgram.Bind();
+		glBindVertexArray( VAO_plane );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+		assert( glGetError() == GL_NO_ERROR );
+		glBindVertexArray( 0 );
+	}
+}
+
 void Display()
 {
 	// Render the mirror mesh to a texture(rtt)
@@ -455,27 +500,16 @@ void Display()
 	//	glDrawArrays( GL_TRIANGLES, 0, 36 );
 	//	glDepthMask( GL_TRUE );
 	//}
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	// Render the scene
+
+	// Render the scene to the shadow map from the light perspective
 	{
-		// Draw the scene
-#if not defined(USE_REFlECTION_SHADER)
-		pDiffuseTex->Bind( GL_TEXTURE0, GL_TEXTURE_2D );
-		pSpecularTex->Bind( GL_TEXTURE1, GL_TEXTURE_2D );
-#endif
-		g_meshShaderProgram.Bind();
-		glBindVertexArray( VAO );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
+		g_renderDepth.Bind();
+
+		g_renderDepth.Unbind();
 	}
-	// Draw the plane for reflection
+
 	{
-		g_planeShaderProgram.Bind();
-		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
+		RenderScene();
 	}
 }
 
@@ -526,7 +560,8 @@ void UpdateView()
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalModelToView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
-	assert( glGetError() == GL_NO_ERROR );
+	glUniform3fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "light_ndcPos" ), 1, &g_ligtPosNdc.elem[0] );
+	assert( glGetError() == GL_NO_ERROR ); 
 
 	g_planeShaderProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_plane.cell );
@@ -534,6 +569,7 @@ void UpdateView()
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, mat_normalPlaneTovView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_planeShaderProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light.cell );
+	glUniform3fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "light_ndcPos" ), 1, &g_ligtPosNdc.elem[0] );
 	assert( glGetError() == GL_NO_ERROR );
 
 #if defined(RENDER_SKYBOX)
@@ -769,8 +805,8 @@ int main( int argc, char* argv[] )
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 #if defined(USE_REFlECTION_SHADER)
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
+	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
+	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
 #else
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
@@ -778,9 +814,14 @@ int main( int argc, char* argv[] )
 
 	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
 	InitializeMaterial( g_objMesh, g_meshShaderProgram );
+	//InitializeTextures( g_objMesh, g_meshShaderProgram );
 
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_planeShaderProgram );
+
+#if defined(RENDER_SHADOW)
+	InitializeDepthMap( g_renderDepth );
+#endif
 
 #if defined(RENDER_TO_TEXTURE)
 	InitializeRenderTexture( g_rtt_mirror );
