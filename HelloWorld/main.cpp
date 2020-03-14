@@ -55,7 +55,7 @@ float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
 float camera_distance = 60.0f;
 
-cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, 100.0f, 60.0f );
+cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, 40.0f, 100.0f );
 
 float rtt_angle_yaw = 0;
 float rtt_angle_pitch = 0;
@@ -148,10 +148,10 @@ const float g_skyboxVertices[] = {
 const GLfloat g_quad_buffer_data[] =
 {
 	// ndc pos         // UV
-	-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-	0.5f,  -0.5f, 0.0f,  1.0f, 0.0f,
-	0.5f,  0.5f,  0.0f,  1.0f, 1.0f,
-	-0.5f, 0.5f,  0.0f,  0.0f, 1.0f
+	-1.0, -1.0f, 0.0f, 0.0f, 0.0f,
+	1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+	1.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+	-1.0f, 1.0f,  0.0f,  0.0f, 1.0f
 };
 
 const unsigned int g_quad_indices_data[] =
@@ -570,39 +570,6 @@ void GenerateShadowMap()
 
 void Display()
 {
-	// Render the mirror mesh to a texture(rtt)
-	//{
-	//	g_rtt_mirror.Bind();
-	//	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	//	glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
-	//	g_meshShaderProgram.Bind();
-	//	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "environment" ), 1 );
-	//	glUniform1i( glGetUniformLocation( g_meshShaderProgram.GetID(), "mirroring" ), 0 );
-	//	auto matFlip = cyMatrix4f::Scale( cyVec3f( 1.0f, -1.0f, 1.0f ) );
-	//	auto matTranslation = cyMatrix4f( 1.0f );
-	//	matTranslation.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-	//	auto mat_reflect_model = matTranslation * matFlip;
-	//	glUniformMatrix4fv( glGetUniformLocation( g_meshShaderProgram.GetID(), "mat_model" ), 1, GL_FALSE, mat_reflect_model.cell );
-	//	glBindVertexArray( VAO );
-	//	glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-	//	assert( glGetError() == GL_NO_ERROR );
-	//	glBindVertexArray( 0 );
-	//	g_rtt_mirror.Unbind();
-	//	assert( glGetError() == GL_NO_ERROR );
-	//}
-	// Draw the skybox
-	//{
-	//	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	//	//glDepthFunc(GL_LEQUAL);
-	//	glDepthMask( GL_FALSE );
-	//	g_skyboxShaderProgram.Bind();
-	//	// ... set view and projection matrix
-	//	glBindVertexArray( VAO_cubemap );
-	//	glActiveTexture( GL_TEXTURE0 );
-	//	glBindTexture( GL_TEXTURE_CUBE_MAP, Tex_cubemap );
-	//	glDrawArrays( GL_TRIANGLES, 0, 36 );
-	//	glDepthMask( GL_TRUE );
-	//}
 
 	// Render the scene to the shadow map from the light perspective
 	{
