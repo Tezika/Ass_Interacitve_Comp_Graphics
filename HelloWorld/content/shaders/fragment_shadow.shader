@@ -21,7 +21,7 @@ uniform vec3 diffuseColor;
 uniform vec3 ambientColor;
 uniform vec3 specularColor;
 uniform vec3 emitColor;
-uniform int  texturing;
+uniform int  shadowing;
 
 float calculateShadow(vec4 i_fragPosInLightSpace)
 {
@@ -51,6 +51,6 @@ void main()
 	vec3 ambient = ambientColor;
 	vec3 diffuse = diffuseColor * diff;
 	vec3 specular = specularColor * spec;
-	float shadow = calculateShadow(fragPosInLightSpace);
-	o_color = vec4((ambient + (1-shadow) * (diffuse + specular)), 1);
+	float shadow = shadowing == 0? 0 : calculateShadow(fragPosInLightSpace);
+	o_color = vec4((ambient + (1 - shadow) * (diffuse + specular)), 1);
 }

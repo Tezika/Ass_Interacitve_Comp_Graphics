@@ -43,8 +43,6 @@ cyGLSLProgram g_shadowMeshProgram;
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
 
-cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, 100.0f, 0.0f );
-
 cyMatrix4f g_mat_model = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_plane = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_normalModel = cyMatrix4f( 1.0f );
@@ -55,7 +53,9 @@ bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
-float camera_distance = -100.0f;
+float camera_distance = 100.0f;
+
+cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, camera_distance, 0 );
 
 float rtt_angle_yaw = 0;
 float rtt_angle_pitch = 0;
@@ -180,14 +180,14 @@ namespace
 
 	cyMatrix4f GetLookAtMatrix( const cyVec3f& i_pos, const cyVec3f& i_target, const cyVec3f& i_worldUp )
 	{
-		auto dir = (i_target - i_pos).GetNormalized();
-		auto left = i_worldUp.Cross(dir).GetNormalized();
-		auto up = dir.Cross( left ).GetNormalized();
+		auto dir = (i_pos - i_target).GetNormalized();
+		auto right = i_worldUp.Cross( dir ).GetNormalized();
+		auto up = dir.Cross( right ).GetNormalized();
 
 		auto mat_lookat = cyMatrix4f( 1.0f );
-		mat_lookat.SetRow( 0, left.x, left.y, left.z, -left.Dot( i_target ) );
-		mat_lookat.SetRow( 1, up.x, up.y, up.z, -up.Dot( i_target ) );
-		mat_lookat.SetRow( 2, dir.x, dir.y, dir.z, -dir.Dot( i_target ) );
+		mat_lookat.SetRow( 0, right.x, right.y, right.z, -right.Dot( i_pos ));
+		mat_lookat.SetRow( 1, up.x, up.y, up.z, -up.Dot( i_pos ) );
+		mat_lookat.SetRow( 2, dir.x, dir.y, dir.z, -dir.Dot( i_pos ) );
 		mat_lookat.SetRow( 3, 0, 0, 0, 1 );
 
 		return mat_lookat;
@@ -323,7 +323,7 @@ void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 void InitializeDepthMap( cyGLRenderDepth2D& i_renderDepth2D )
 {
 	// Do not initialize it as a render depth texture to test it.
-	if (!i_renderDepth2D.Initialize( true ))
+	if (!i_renderDepth2D.Initialize( false ))
 	{
 		fprintf( stderr, "Failed to generate the render depth texture." );
 		assert( false );
@@ -524,6 +524,7 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, g_mat_normalPlane.cell );
+		glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 0 );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -533,6 +534,10 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, g_mat_normalModel.cell );
+		if (i_bDrawShdow)
+		{
+			glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 0 );
+		}
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -547,8 +552,8 @@ void GenerateShadowMap()
 	g_shadowPassProgram.Bind();
 	// Draw the teapot
 	{
-		glBindVertexArray( VAO );
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowPassProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
+		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
@@ -602,24 +607,26 @@ void Display()
 	// Render the scene to the shadow map from the light perspective
 	{
 		g_tex_renderDepth.Bind();
+		glCullFace( GL_FRONT );
 		GenerateShadowMap();
+		glCullFace( GL_BACK );
 		g_tex_renderDepth.Unbind();
 	}
 
-	//{
-	//	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	//	g_quadShaderProgram.Bind();
-	//	glUniform1i( glGetUniformLocation( g_quadShaderProgram.GetID(), "tex_render" ), 0 );
-	//	glActiveTexture( GL_TEXTURE0 );
-	//	glBindTexture( GL_TEXTURE_2D, g_tex_renderDepth.GetTextureID() );
+	{
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		g_quadShaderProgram.Bind();
+		glUniform1i( glGetUniformLocation( g_quadShaderProgram.GetID(), "tex_render" ), 0 );
+		glActiveTexture( GL_TEXTURE0 );
+		glBindTexture( GL_TEXTURE_2D, g_tex_renderDepth.GetTextureID() );
 
-	//	glBindVertexArray( VAO_quad );
-	//	glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(count_quad_indices), GL_UNSIGNED_INT, 0 );
-	//	glBindVertexArray( 0 );
-	//}
+		glBindVertexArray( VAO_quad );
+		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(count_quad_indices), GL_UNSIGNED_INT, 0 );
+		glBindVertexArray( 0 );
+	}
 
 	{
-		RenderScene( true );
+		//RenderScene( false );
 	}
 	assert( glGetError() == GL_NO_ERROR );
 }
@@ -639,14 +646,15 @@ void UpdateLight()
 
 	auto lightTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
 
-	auto mat_lightSpace_view = GetLookAtMatrix( g_ligtPosInWorld, lightTarget, cyVec3f( 0, 1, 0 ) );
+	auto worldUp = cyVec3f( 0, 1, 0 );
+	auto mat_lightSpace_view = GetLookAtMatrix( g_ligtPosInWorld, lightTarget, worldUp );
 
 	auto mat_perspective = cyMatrix4f( 1.0f );
-	float near_plane = 5.0f;
+	float near_plane = 1.0f;
 	float far_plane = 200.0f;
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), shadow_width / shadow_height, near_plane, far_plane );
 
-	auto mat_lightSpace = mat_perspective * mat_lightSpace_view * mat_light_trans;
+	auto mat_lightSpace = mat_perspective * mat_lightSpace_view;
 
 	g_quadShaderProgram.Bind();
 	glUniform1f( glGetUniformLocation( g_quadShaderProgram.GetID(), "near_plane" ), near_plane );
@@ -682,14 +690,13 @@ void UpdateModels()
 
 	auto mat_cameraTranslation = cyMatrix4f( 1.0f );
 	mat_cameraTranslation.SetTranslation( cameraPosition );
-	mat_view = mat_cameraView * mat_cameraTranslation;
 
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 1.0f, 1000.0f );
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 5.0f, 1000.0f );
 	g_mat_normalPlane = (mat_view * g_mat_plane).GetInverse().GetTranspose();
 	g_mat_normalModel = (mat_view * g_mat_model).GetInverse().GetTranspose();
 
 	g_shadowMeshProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_view.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 
 	assert( glGetError() == GL_NO_ERROR );
