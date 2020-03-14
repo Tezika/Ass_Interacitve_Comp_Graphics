@@ -25,13 +25,13 @@ uniform int  shadowing;
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 
-float calculateShadow(vec4 i_fragPosInLightSpace)
+float calculateShadow(vec4 i_fragPosInLightSpace, float i_bias)
 {
 	vec3 projCoord = i_fragPosInLightSpace.xyz / i_fragPosInLightSpace.w;
 	projCoord = projCoord * 0.5 + 0.5;
-	float closestDepth  = texture(tex_shadowMap, projCoord.xy).r;
+	float closestDepth  = texture(tex_shadowMap, projCoord.xy).z;
 	float currentDepth = projCoord.z;
-	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+	float shadow = currentDepth - i_bias > closestDepth ? 1.0 : 0.0;
 	return shadow;
 }
 
@@ -43,6 +43,7 @@ void main()
 	vec3 normal = normalize(normalInterp);
 	vec3 lightDir = normalize(lightPos - fragPos);
 	float diff = max(dot(lightDir,normal), 0.0);
+	// float bias = max(0.05 * (1.0 - diff), 0.001); 
 
 	// Blinn - Phong
 	float spec = 0;
@@ -53,7 +54,7 @@ void main()
 	vec3 ambient = ambientColor;
 	vec3 diffuse = diffuseColor * diff;
 	vec3 specular = specularColor * spec;
-	float shadow = shadowing == 0 ? 0.0 : calculateShadow(fragPosInLightSpace);
+	float shadow = shadowing == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, 0.001);
 	vec3 lighting = ambient + (1-shadow) *(diffuse + specular);
 	o_color = vec4(lighting, 1);
 }

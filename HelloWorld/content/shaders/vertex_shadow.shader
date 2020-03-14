@@ -31,9 +31,9 @@ out vec4 fragPosInLightSpace;
 void main()
 {
 	gl_Position =  mat_projection * mat_view * mat_model * vec4(i_vertexPosition_local, 1);
-	fragPosInLightSpace = mat_lightSpaceTransformation * mat_model * vec4(i_vertexPosition_local, 1);
-	normalInterp = transpose(inverse(mat3(mat_model))) * i_vertexNormalPosition_local;
 	vec4 fragPos4 = mat_model * vec4(i_vertexPosition_local, 1);
 	fragPos = vec3(fragPos4) / fragPos4.w;
+	fragPosInLightSpace = mat_lightSpaceTransformation * fragPos4;
+	normalInterp = transpose(inverse(mat3(mat_model))) * i_vertexNormalPosition_local;
 	texCoord = i_texCoord;
 }

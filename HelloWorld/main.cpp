@@ -55,7 +55,7 @@ float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
 float camera_distance = 60.0f;
 
-cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, 100.0f, 0.0f );
+cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, 100.0f, 60.0f );
 
 float rtt_angle_yaw = 0;
 float rtt_angle_pitch = 0;
@@ -518,7 +518,7 @@ void RenderScene( bool i_bDrawShdow = false )
 	g_shadowMeshProgram.Bind();
 	if (i_bDrawShdow)
 	{
-		glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "tex_shadowMap" ), g_tex_renderDepth.GetTextureID() );
+		glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "tex_shadowMap" ), 0 );
 	}
 	glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 0 );
 	// Draw the plane 
@@ -607,9 +607,7 @@ void Display()
 	// Render the scene to the shadow map from the light perspective
 	{
 		g_tex_renderDepth.Bind();
-		glCullFace( GL_FRONT );
 		GenerateShadowMap();
-		glCullFace( GL_BACK );
 		g_tex_renderDepth.Unbind();
 	}
 
@@ -679,7 +677,7 @@ void UpdateModels()
 	mat_model_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 
 	auto mat_model_trans = cyMatrix4f( 1.0f );
-	mat_model_trans.SetTranslation( cyVec3f( 0, 15.0f, 0 ) );
+	mat_model_trans.SetTranslation( cyVec3f( 0, 6.0f, 0 ) );
 	g_mat_model = mat_model_rot * mat_model_trans;
 
 	auto cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
