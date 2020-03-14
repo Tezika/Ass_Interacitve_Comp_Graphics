@@ -6,7 +6,6 @@
 // will determine the color of the corresponding pixel on the screen
 in vec3 normalInterp; 
 in vec3 fragPos;
-in vec3 lightPos;
 in vec2 texCoord;
 in vec4 fragPosInLightSpace;
 out vec4 o_color;
@@ -22,6 +21,9 @@ uniform vec3 ambientColor;
 uniform vec3 specularColor;
 uniform vec3 emitColor;
 uniform int  shadowing;
+
+uniform vec3 viewPos;
+uniform vec3 lightPos;
 
 float calculateShadow(vec4 i_fragPosInLightSpace)
 {
@@ -44,13 +46,14 @@ void main()
 
 	// Blinn - Phong
 	float spec = 0;
-	vec3 viewDir = normalize(-fragPos);
+	vec3 viewDir = normalize( viewPos - fragPos );
 	vec3 halfDir = normalize( lightPos + viewDir);
 	float specAngle = max(dot(halfDir, normal), 0.0);
-	spec = pow(specAngle, 16.0);
+	spec = pow(specAngle, 64.0);
 	vec3 ambient = ambientColor;
 	vec3 diffuse = diffuseColor * diff;
 	vec3 specular = specularColor * spec;
-	float shadow = shadowing == 0? 0 : calculateShadow(fragPosInLightSpace);
-	o_color = vec4((ambient + (1 - shadow) * (diffuse + specular)), 1);
+	float shadow = shadowing == 0 ? 0.0 : calculateShadow(fragPosInLightSpace);
+	vec3 lighting = ambient + (1-shadow) *(diffuse + specular);
+	o_color = vec4(lighting, 1);
 }

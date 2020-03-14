@@ -53,9 +53,9 @@ bool bControlTheRtt = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
-float camera_distance = 100.0f;
+float camera_distance = 60.0f;
 
-cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, camera_distance, 0 );
+cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, 100.0f, 0.0f );
 
 float rtt_angle_yaw = 0;
 float rtt_angle_pitch = 0;
@@ -65,7 +65,7 @@ float rotation_yaw = 2.0f;
 float rotation_pitch = 1.5f;
 
 float light_angle_yaw = 0.0f;
-float light_angle_pitch = 0.0f;
+float light_angle_pitch = -90.0f;
 
 float screen_Width = 640;
 float screen_Height = 480;
@@ -185,7 +185,7 @@ namespace
 		auto up = dir.Cross( right ).GetNormalized();
 
 		auto mat_lookat = cyMatrix4f( 1.0f );
-		mat_lookat.SetRow( 0, right.x, right.y, right.z, -right.Dot( i_pos ));
+		mat_lookat.SetRow( 0, right.x, right.y, right.z, -right.Dot( i_pos ) );
 		mat_lookat.SetRow( 1, up.x, up.y, up.z, -up.Dot( i_pos ) );
 		mat_lookat.SetRow( 2, dir.x, dir.y, dir.z, -dir.Dot( i_pos ) );
 		mat_lookat.SetRow( 3, 0, 0, 0, 1 );
@@ -520,11 +520,15 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "tex_shadowMap" ), g_tex_renderDepth.GetTextureID() );
 	}
+	glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 0 );
 	// Draw the plane 
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, g_mat_normalPlane.cell );
-		glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 0 );
+		if (i_bDrawShdow)
+		{
+			glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 1 );
+		}
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -534,10 +538,6 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, g_mat_normalModel.cell );
-		if (i_bDrawShdow)
-		{
-			glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 0 );
-		}
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -613,20 +613,20 @@ void Display()
 		g_tex_renderDepth.Unbind();
 	}
 
-	{
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		g_quadShaderProgram.Bind();
-		glUniform1i( glGetUniformLocation( g_quadShaderProgram.GetID(), "tex_render" ), 0 );
-		glActiveTexture( GL_TEXTURE0 );
-		glBindTexture( GL_TEXTURE_2D, g_tex_renderDepth.GetTextureID() );
+	//{
+	//	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	//	g_quadShaderProgram.Bind();
+	//	glUniform1i( glGetUniformLocation( g_quadShaderProgram.GetID(), "tex_render" ), 0 );
+	//	glActiveTexture( GL_TEXTURE0 );
+	//	glBindTexture( GL_TEXTURE_2D, g_tex_renderDepth.GetTextureID() );
 
-		glBindVertexArray( VAO_quad );
-		glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(count_quad_indices), GL_UNSIGNED_INT, 0 );
-		glBindVertexArray( 0 );
-	}
+	//	glBindVertexArray( VAO_quad );
+	//	glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(count_quad_indices), GL_UNSIGNED_INT, 0 );
+	//	glBindVertexArray( 0 );
+	//}
 
 	{
-		//RenderScene( false );
+		RenderScene( true );
 	}
 	assert( glGetError() == GL_NO_ERROR );
 }
@@ -661,8 +661,8 @@ void UpdateLight()
 	glUniform1f( glGetUniformLocation( g_quadShaderProgram.GetID(), "far_plane" ), far_plane );
 
 	g_shadowMeshProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_lightTransformation" ), 1, GL_FALSE, mat_light_trans.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+	glUniform3fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "lightPos" ), 1, &g_ligtPosInWorld.elem[0] );
 
 	g_shadowPassProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_shadowPassProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
@@ -674,12 +674,12 @@ void UpdateModels()
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	auto mat_modelToView = cyMatrix4f( 1.0f );
 
-	g_mat_plane.SetTranslation( cyVec3f( 0, -10.0f, 0 ) );
+	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
 	auto mat_model_rot = cyMatrix4f( 1.0f );
 	mat_model_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 
 	auto mat_model_trans = cyMatrix4f( 1.0f );
-	mat_model_trans.SetTranslation( cyVec3f( 0, 10.0f, 0 ) );
+	mat_model_trans.SetTranslation( cyVec3f( 0, 15.0f, 0 ) );
 	g_mat_model = mat_model_rot * mat_model_trans;
 
 	auto cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
@@ -698,6 +698,7 @@ void UpdateModels()
 	g_shadowMeshProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	glUniform3fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "viewPos" ), 1, &cameraPosition.elem[0] );
 
 	assert( glGetError() == GL_NO_ERROR );
 
