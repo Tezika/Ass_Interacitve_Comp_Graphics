@@ -25,6 +25,9 @@ GLuint VBO;
 GLuint VAO_plane;
 GLuint VBO_plane;
 
+GLuint VAO_light;
+GLuint VBO_light;
+
 GLuint VAO_quad;
 GLuint VBO_quad;
 GLuint EBO_quad;
@@ -39,33 +42,42 @@ cyGLSLProgram g_skyboxShaderProgram;
 cyGLSLProgram g_quadShaderProgram;
 cyGLSLProgram g_shadowPassProgram;
 cyGLSLProgram g_shadowMeshProgram;
+cyGLSLProgram g_lightMeshProgram;
 
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
+cyTriMesh g_lightMesh;
+cyVec3f g_dir_targetToCamera;
+cyVec3f g_dir_targetTolight;
+cyVec3f g_cameraTarget;
+cyVec3f g_lightTarget;
 
 cyMatrix4f g_mat_model = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_plane = cyMatrix4f( 1.0f );
-cyMatrix4f g_mat_normalModel = cyMatrix4f( 1.0f );
-cyMatrix4f g_mat_normalPlane = cyMatrix4f( 1.0f );
+cyMatrix4f g_mat_light = cyMatrix4f( 1.0f );
 
-bool bRotateLight = false;
-bool bControlTheRtt = false;
+bool bControlTheLight = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
-float camera_distance = 60.0f;
 
-cyVec3f g_ligtPosInWorld = cyVec3f( 0.0f, 40.0f, 100.0f );
+float camera_moveSpeed_perframe = 0.05f;
 
-float rtt_angle_yaw = 0;
-float rtt_angle_pitch = 0;
-float rtt_dis = 1.0f;
+cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 30.0f, 40.0f );
+cyVec3f g_cameraPosInWorld = cyVec3f( 40.0f, 100.0f, 40.0f );
+
+float g_moveSpeed = 20;
+float g_rotate_yaw = 20;
+float g_rotate_pitch = 15;
 
 float rotation_yaw = 2.0f;
 float rotation_pitch = 1.5f;
 
 float light_angle_yaw = 0.0f;
-float light_angle_pitch = -90.0f;
+float light_angle_pitch = 0.0f;
+
+float g_dis_lightToTarget = 60.0f;
+float g_dis_cameraToTarget = 60.0f;
 
 float screen_Width = 640;
 float screen_Height = 480;
@@ -284,6 +296,8 @@ void InitializeSkyBox()
 	glBindVertexArray( 0 );
 	assert( glGetError() == GL_NO_ERROR );
 }
+
+#pragma region  
 
 void InitializeMaterial( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 {
@@ -512,19 +526,44 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 }
 
+void InitializeView()
+{
+	g_cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+	g_lightTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+
+	g_dir_targetToCamera = (g_cameraPosInWorld - g_cameraTarget).GetNormalized();
+	g_dir_targetTolight = (g_lightPosInWorld - g_lightTarget).GetNormalized();
+
+	g_dis_cameraToTarget = (g_cameraPosInWorld - g_cameraTarget).Length();
+	g_dis_lightToTarget = (g_lightPosInWorld - g_lightTarget).Length();
+}
+
+#pragma endregion Initialization
+
+#pragma region
 void RenderScene( bool i_bDrawShdow = false )
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	// Draw the light source
+	{
+		g_lightMeshProgram.Bind();
+		glUniformMatrix4fv( glGetUniformLocation( g_lightMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_light.cell );
+		glBindVertexArray( VAO_light );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh.NF() );
+		assert( glGetError() == GL_NO_ERROR );
+		glBindVertexArray( 0 );
+	}
+
 	g_shadowMeshProgram.Bind();
 	if (i_bDrawShdow)
 	{
 		glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "tex_shadowMap" ), 0 );
 	}
+
 	glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 0 );
 	// Draw the plane 
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, g_mat_normalPlane.cell );
 		if (i_bDrawShdow)
 		{
 			glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 1 );
@@ -537,7 +576,6 @@ void RenderScene( bool i_bDrawShdow = false )
 	// Draw the teapot
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
-		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_normalToView" ), 1, GL_FALSE, g_mat_normalModel.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -574,21 +612,11 @@ void Display()
 	// Render the scene to the shadow map from the light perspective
 	{
 		g_tex_renderDepth.Bind();
+		glCullFace( GL_FRONT );
 		GenerateShadowMap();
+		glCullFace( GL_BACK );
 		g_tex_renderDepth.Unbind();
 	}
-
-	//{
-	//	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	//	g_quadShaderProgram.Bind();
-	//	glUniform1i( glGetUniformLocation( g_quadShaderProgram.GetID(), "tex_render" ), 0 );
-	//	glActiveTexture( GL_TEXTURE0 );
-	//	glBindTexture( GL_TEXTURE_2D, g_tex_renderDepth.GetTextureID() );
-
-	//	glBindVertexArray( VAO_quad );
-	//	glDrawElements( GL_TRIANGLES, static_cast<GLsizei>(count_quad_indices), GL_UNSIGNED_INT, 0 );
-	//	glBindVertexArray( 0 );
-	//}
 
 	{
 		RenderScene( true );
@@ -598,21 +626,40 @@ void Display()
 
 void UpdateCamera()
 {
+	auto mat_camera_rot = cyMatrix4f( 1.0f );
+	mat_camera_rot.SetRotationXYZ( glm::radians( camera_angle_pitch ), glm::radians( camera_angle_yaw ), 0 );
+	auto dir_camera = mat_camera_rot * cyVec4f( g_dir_targetToCamera, 0.0f );
+	g_cameraPosInWorld = g_cameraTarget + cyVec3f( dir_camera ) * g_dis_cameraToTarget;
 
+	auto mat_cameraView = GetLookAtMatrix( g_cameraPosInWorld, g_cameraTarget, cyVec3f( 0, 1.0, 0 ) );
+	auto mat_perspective = cyMatrix4f( 1.0f );
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 5.0f, 1000.0f );
+
+	g_shadowMeshProgram.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	glUniform3fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "viewPos" ), 1, &g_cameraPosInWorld.elem[0] );
+
+	g_lightMeshProgram.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_lightMeshProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_lightMeshProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+
+	assert( glGetError() == GL_NO_ERROR );
 }
 
 void UpdateLight()
 {
-	auto mat_light_trans = cyMatrix4f( 1.0f );
-	mat_light_trans.SetTranslation( g_ligtPosInWorld );
 	auto mat_light_rot = cyMatrix4f( 1.0f );
 	mat_light_rot.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
-	mat_light_trans = mat_light_rot * mat_light_trans;
+	auto dir_light = mat_light_rot * cyVec4f( g_dir_targetTolight, 0.0f );
+	g_lightPosInWorld = g_lightTarget + cyVec3f( dir_light ) * g_dis_lightToTarget;
 
-	auto lightTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+	auto mat_trans = cyMatrix4f( 1.0 );
+	mat_trans.SetTranslation( g_lightPosInWorld );
+	g_mat_light = mat_light_rot * mat_trans;
 
 	auto worldUp = cyVec3f( 0, 1, 0 );
-	auto mat_lightSpace_view = GetLookAtMatrix( g_ligtPosInWorld, lightTarget, worldUp );
+	auto mat_lightSpace_view = GetLookAtMatrix( g_lightPosInWorld, g_lightTarget, worldUp );
 
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	float near_plane = 1.0f;
@@ -627,50 +674,25 @@ void UpdateLight()
 
 	g_shadowMeshProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
-	glUniform3fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "lightPos" ), 1, &g_ligtPosInWorld.elem[0] );
+	glUniform3fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
 
 	g_shadowPassProgram.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_shadowPassProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+
+	g_lightMeshProgram.Bind();
+	cyVec3f lightSource( 1.0f, 1.0f, 1.0f );
+	glUniform3fv( glGetUniformLocation( g_lightMeshProgram.GetID(), "lightPos" ), 1, &lightSource.elem[0] );
 }
 
 void UpdateModels()
 {
-	auto mat_view = cyMatrix4f( 1.0f );
-	auto mat_perspective = cyMatrix4f( 1.0f );
-	auto mat_modelToView = cyMatrix4f( 1.0f );
-
 	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
-	auto mat_model_rot = cyMatrix4f( 1.0f );
-	mat_model_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-
-	auto mat_model_trans = cyMatrix4f( 1.0f );
-	mat_model_trans.SetTranslation( cyVec3f( 0, 6.0f, 0 ) );
-	g_mat_model = mat_model_rot * mat_model_trans;
-
-	auto cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
-	auto cameraPosition = cyVec3f( 0, camera_distance, camera_distance );
-	auto worldUp = cyVec3f( 0, 1, 0 );
-
-	auto mat_cameraView = GetLookAtMatrix( cameraPosition, cameraTarget, worldUp );
-
-	auto mat_cameraTranslation = cyMatrix4f( 1.0f );
-	mat_cameraTranslation.SetTranslation( cameraPosition );
-
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 5.0f, 1000.0f );
-	g_mat_normalPlane = (mat_view * g_mat_plane).GetInverse().GetTranspose();
-	g_mat_normalModel = (mat_view * g_mat_model).GetInverse().GetTranspose();
-
-	g_shadowMeshProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
-	glUniform3fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "viewPos" ), 1, &cameraPosition.elem[0] );
-
-	assert( glGetError() == GL_NO_ERROR );
+	g_mat_model.SetTranslation( cyVec3f( 0, 10, 0 ) );
 
 #if defined(RENDER_SHADOW)
 	g_quadShaderProgram.Bind();
 	auto mat_quad_rot = cyMatrix4f( 1.0f );
-	mat_quad_rot.SetRotationXYZ( glm::radians( -rtt_angle_pitch ), glm::radians( -rtt_angle_yaw ), 0 );
+	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	glUniformMatrix4fv( glGetUniformLocation( g_quadShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
 	glUniform1f( glGetUniformLocation( g_quadShaderProgram.GetID(), "dis" ), 1.0f );
 #endif
@@ -695,22 +717,11 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 	{
 		if (i_action == GLFW_PRESS)
 		{
-			bRotateLight = true;
+			bControlTheLight = true;
 		}
 		else if (i_action == GLFW_RELEASE)
 		{
-			bRotateLight = false;
-		}
-	}
-	if (i_key == GLFW_KEY_LEFT_ALT)
-	{
-		if (i_action == GLFW_PRESS)
-		{
-			bControlTheRtt = true;
-		}
-		else if (i_action == GLFW_RELEASE)
-		{
-			bControlTheRtt = false;
+			bControlTheLight = false;
 		}
 	}
 }
@@ -742,7 +753,27 @@ void MouseButtonCallback( GLFWwindow* i_pWindow, int i_button, int i_action, int
 	}
 }
 
-void UpdateMouseInput( GLFWwindow* i_pWindow )
+void UpdateKeyboardIput()
+{
+	//	if (bKeyWPressed)
+	//	{
+	//		camera_distance_z -= camera_moveSpeed_perframe;
+	//	}
+	//	if (bKeyAPressed)
+	//	{
+	//		camera_distance_x += camera_moveSpeed_perframe;
+	//	}
+	//	if (bKeySPressed)
+	//	{
+	//		camera_distance_z += camera_moveSpeed_perframe;
+	//	}
+	//	if (bKeyDPressed)
+	//	{
+	//		camera_distance_x -= camera_moveSpeed_perframe;
+	//	}
+}
+
+void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 {
 	// Get a new camera distance
 	if (right_mouseBtn_drag)
@@ -755,27 +786,28 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		auto dis = _cachedRightMousePos - pos_mouse;
 		dis.Normalize();
 		_cachedRightMousePos = pos_mouse;
+		auto moveDistance = g_moveSpeed * i_frameTime;
 		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
 		{
-			if (bControlTheRtt)
+			if (bControlTheLight)
 			{
-				rtt_dis -= 0.05f;
+				g_dis_lightToTarget -= moveDistance;
 			}
 			else
 			{
-				camera_distance -= 0.3f;
+				g_dis_cameraToTarget -= moveDistance;
 			}
 
 		}
 		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
 		{
-			if (bControlTheRtt)
+			if (bControlTheLight)
 			{
-				rtt_dis += 0.05f;
+				g_dis_lightToTarget += moveDistance;
 			}
 			else
 			{
-				camera_distance += 0.3f;
+				g_dis_cameraToTarget += moveDistance;
 			}
 		}
 	}
@@ -793,81 +825,53 @@ void UpdateMouseInput( GLFWwindow* i_pWindow )
 		// Rotate around yaw
 		if (dis.Dot( cyVec2d( 1, 0 ) ) > 0)
 		{
-			if (bControlTheRtt)
+			if (bControlTheLight)
 			{
-				rtt_angle_yaw -= rotation_yaw;
+				light_angle_yaw -= g_rotate_yaw * i_frameTime;
 			}
 			else
 			{
-				if (!bRotateLight)
-				{
-					camera_angle_yaw -= rotation_yaw;
-				}
-				else
-				{
-					light_angle_yaw -= rotation_yaw;
-				}
+				camera_angle_yaw -= g_rotate_yaw * i_frameTime;
 			}
 		}
 		else if (dis.Dot( cyVec2d( 1, 0 ) ) < 0)
 		{
-			if (bControlTheRtt)
+			if (bControlTheLight)
 			{
-				rtt_angle_yaw += rotation_yaw;
+				light_angle_yaw += g_rotate_yaw * i_frameTime;
 			}
 			else
 			{
-				if (!bRotateLight)
-				{
-					camera_angle_yaw += rotation_yaw;
-				}
-				else
-				{
-					light_angle_yaw += rotation_yaw;
-				}
+				camera_angle_yaw += g_rotate_yaw * i_frameTime;
 			}
 		}
 
 		// Rotate around the pitch
 		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
 		{
-			if (bControlTheRtt)
+			if (bControlTheLight)
 			{
-				rtt_angle_pitch -= rotation_pitch;
+				light_angle_pitch -= g_rotate_pitch * i_frameTime;
 			}
 			else
 			{
-				if (!bRotateLight)
-				{
-					camera_angle_pitch -= rotation_pitch;
-				}
-				else
-				{
-					light_angle_pitch -= rotation_pitch;
-				}
+				camera_angle_pitch -= g_rotate_pitch * i_frameTime;
 			}
 		}
 		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
 		{
-			if (bControlTheRtt)
+			if (bControlTheLight)
 			{
-				rtt_angle_pitch += rotation_pitch;
+				light_angle_pitch += g_rotate_pitch * i_frameTime;
 			}
 			else
 			{
-				if (!bRotateLight)
-				{
-					camera_angle_pitch += rotation_pitch;
-				}
-				else
-				{
-					light_angle_pitch += rotation_pitch;
-				}
+				camera_angle_pitch += g_rotate_pitch * i_frameTime;
 			}
-
 		}
 	}
 }
+#pragma endregion Update
 
 int main( int argc, char* argv[] )
 {
@@ -912,6 +916,7 @@ int main( int argc, char* argv[] )
 	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
 	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
 #elif defined(RENDER_SHADOW)
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_lightMeshProgram );
 	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_shadowMeshProgram );
 	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_shadowPassProgram );
 #else
@@ -926,6 +931,8 @@ int main( int argc, char* argv[] )
 	CompileShaders( path_vertexShader_quad, path_fragmentShader_quad, g_quadShaderProgram );
 	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
 	InitializeDepthMap( g_tex_renderDepth );
+	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
+	InitializeMaterial( g_lightMesh, g_lightMeshProgram );
 #endif
 
 #if defined(RENDER_TO_TEXTURE)
@@ -936,11 +943,16 @@ int main( int argc, char* argv[] )
 	InitializeSkyBox();
 #endif
 
+	InitializeView();
+
 	while (!glfwWindowShouldClose( pWindow ))
 	{
 		UpdateMouseInput( pWindow );
+
+		UpdateCamera();
 		UpdateLight();
 		UpdateModels();
+
 		Display();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
@@ -977,9 +989,13 @@ int main( int argc, char* argv[] )
 		g_tex_renderDepth.Delete();
 		g_shadowPassProgram.Delete();
 		g_shadowMeshProgram.Delete();
+		g_lightMeshProgram.Delete();
 		glDeleteVertexArrays( 1, &VAO_quad );
 		glDeleteBuffers( 1, &VBO_quad );
 		glDeleteBuffers( 1, &EBO_quad );
+
+		glDeleteVertexArrays( 1, &VAO_light );
+		glDeleteBuffers( 1, &VBO_light );
 #endif
 		if (glGetError() != GL_NO_ERROR)
 		{

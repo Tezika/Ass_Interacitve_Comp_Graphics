@@ -8,7 +8,6 @@
 in vec3 fragPos;
 in vec3 normalInterp;
 in vec2 texCoord;
-in vec3 lightPos;
 
 out vec4 o_color;
 
@@ -23,10 +22,7 @@ uniform vec3 specularColor;
 uniform vec3 emitColor;
 uniform int  texturing;
 
-float calculateShadow()
-{
-
-}
+uniform vec3 lightPos;
 
 // Entry Point
 //============
@@ -40,7 +36,7 @@ void main()
 	// Blinn - Phong
 	float spec = 0;
 	vec3 viewDir = normalize(-fragPos);
-	vec3 halfDir = normalize( lightPos + viewDir);
+	vec3 halfDir = normalize(lightPos + viewDir);
 	float specAngle = max(dot(halfDir, normal), 0.0);
 	spec = pow(specAngle, 16.0);
 	vec3 ambient;
