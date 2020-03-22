@@ -656,7 +656,7 @@ void UpdateLight()
 
 	auto mat_trans = cyMatrix4f( 1.0 );
 	mat_trans.SetTranslation( g_lightPosInWorld );
-	g_mat_light = mat_light_rot * mat_trans;
+	g_mat_light =  mat_trans * mat_light_rot;
 
 	auto worldUp = cyVec3f( 0, 1, 0 );
 	auto mat_lightSpace_view = GetLookAtMatrix( g_lightPosInWorld, g_lightTarget, worldUp );
