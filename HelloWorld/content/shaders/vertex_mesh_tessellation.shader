@@ -5,8 +5,6 @@
 // The locations assigned are arbitrary
 // but must match the C calls to glVertexAttribPointer()
 layout( location = 0 ) in vec3 i_vertexPosition_local;
-layout( location = 1 ) in vec3 i_vertexNormalPosition_local;
-layout( location = 2 ) in vec2 i_texCoord;
 
 uniform mat4 mat_model;
 uniform mat4 mat_view;
