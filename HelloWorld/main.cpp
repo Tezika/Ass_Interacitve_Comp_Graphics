@@ -17,7 +17,8 @@
 //#define RENDER_TO_TEXTURE
 //#define RENDER_SKYBOX
 //#define USE_REFlECTION_SHADER
-#define RENDER_SHADOW
+//#define RENDER_SHADOW
+#define TESSELLATION
 
 GLuint VAO;
 GLuint VBO;
@@ -554,33 +555,33 @@ void RenderScene( bool i_bDrawShdow = false )
 		glBindVertexArray( 0 );
 	}
 
-	g_sp_shadowMesh.Bind();
-	if (i_bDrawShdow)
-	{
-		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap" ), 0 );
-	}
+	//g_sp_shadowMesh.Bind();
+	//if (i_bDrawShdow)
+	//{
+	//	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap" ), 0 );
+	//}
 
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 0 );
-	// Draw the plane 
-	{
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-		if (i_bDrawShdow)
-		{
-			glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 1 );
-		}
-		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
-	}
-	// Draw the teapot
-	{
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
-		glBindVertexArray( VAO );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
-	}
+	//glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 0 );
+	//// Draw the plane 
+	//{
+	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+	//	if (i_bDrawShdow)
+	//	{
+	//		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 1 );
+	//	}
+	//	glBindVertexArray( VAO_plane );
+	//	glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+	//	assert( glGetError() == GL_NO_ERROR );
+	//	glBindVertexArray( 0 );
+	//}
+	//// Draw the teapot
+	//{
+	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
+	//	glBindVertexArray( VAO );
+	//	glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
+	//	assert( glGetError() == GL_NO_ERROR );
+	//	glBindVertexArray( 0 );
+	//}
 
 }
 
@@ -919,9 +920,11 @@ int main( int argc, char* argv[] )
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
 	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_sp_shadowMesh );
 	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_sp_shadowPass );
+#elif defined(TESSELLATION)
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
 #else
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_shadowMesh );
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_shadowMesh );
 #endif
 	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
@@ -933,6 +936,7 @@ int main( int argc, char* argv[] )
 	InitializeDepthMap( g_tex_renderDepth );
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
 	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
+
 #endif
 
 #if defined(RENDER_TO_TEXTURE)
@@ -941,6 +945,11 @@ int main( int argc, char* argv[] )
 
 #if defined(RENDER_SKYBOX)
 	InitializeSkyBox();
+#endif
+
+#if defined(TESSELLATION)
+	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
+	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
 #endif
 
 	InitializeView();
