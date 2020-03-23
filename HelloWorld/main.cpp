@@ -14,12 +14,6 @@
 #include "lodepng.h"
 #include "Texture.h"
 
-//#define RENDER_TO_TEXTURE
-//#define RENDER_SKYBOX
-//#define USE_REFlECTION_SHADER
-//#define RENDER_SHADOW
-#define TESSELLATION
-
 GLuint VAO;
 GLuint VBO;
 
@@ -47,6 +41,7 @@ cyGLSLProgram g_sp_quad;
 cyGLSLProgram g_sp_shadowPass;
 cyGLSLProgram g_sp_shadowMesh;
 cyGLSLProgram g_sp_lightMesh;
+cyGLSLProgram g_sp_tessellation;
 
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
@@ -59,6 +54,7 @@ cyVec3f g_target_light;
 cyMatrix4f g_mat_model = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_plane = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_light = cyMatrix4f( 1.0f );
+cyMatrix4f g_mat_quad = cyMatrix4f( 1.0f );
 
 bool bControlTheLight = false;
 
@@ -89,6 +85,9 @@ float height_screen = 480;
 float width_shadow = 1024;
 float height_shadow = 1024;
 
+constexpr char const* path_vertexShader_tessellation = "content/shaders/vertex_tessellation.shader";
+constexpr char const* path_fragmentShader_tessellation = "content/shaders/fragment_tessellation.shader";
+
 constexpr char const* path_vertexShader_mesh = "content/shaders/vertex_mesh.shader";
 constexpr char const* path_fragmentShader_mesh = "content/shaders/fragment_mesh.shader";
 
@@ -101,11 +100,6 @@ constexpr char const* path_fragmentShader_shadowPass = "content/shaders/fragment
 constexpr char const* path_vertexShader_quad = "content/shaders/vertex_quad_texture.shader";
 constexpr char const* path_fragmentShader_quad = "content/shaders/fragment_quad_texture.shader";
 
-constexpr char const* path_vertexShader_skybox = "content/shaders/vertex_skybox.shader";
-constexpr char const* path_fragmentShader_skybox = "content/shaders/fragment_skybox.shader";
-
-constexpr char const* path_vertexShader_reflection = "content/shaders/vertex_reflection.shader";
-constexpr char const* path_fragmentShader_reflection = "content/shaders/fragment_reflection.shader";
 
 constexpr char const* path_meshResource = "content/mesh/";
 constexpr char const* path_texResource = "content/tex_mapping/";
@@ -113,62 +107,14 @@ constexpr char const* path_texResource = "content/tex_mapping/";
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
 
-GLuint VAO_cubemap;
-GLuint VBO_cubemap;
-GLuint Tex_cubemap;
-
-const float g_skyboxVertices[] = {
-	// positions          
-	-1.0f,  1.0f, -1.0f,
-	-1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-	 1.0f,  1.0f, -1.0f,
-	-1.0f,  1.0f, -1.0f,
-
-	-1.0f, -1.0f,  1.0f,
-	-1.0f, -1.0f, -1.0f,
-	-1.0f,  1.0f, -1.0f,
-	-1.0f,  1.0f, -1.0f,
-	-1.0f,  1.0f,  1.0f,
-	-1.0f, -1.0f,  1.0f,
-
-	 1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-
-	-1.0f, -1.0f,  1.0f,
-	-1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f, -1.0f,  1.0f,
-	-1.0f, -1.0f,  1.0f,
-
-	-1.0f,  1.0f, -1.0f,
-	 1.0f,  1.0f, -1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	-1.0f,  1.0f,  1.0f,
-	-1.0f,  1.0f, -1.0f,
-
-	-1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f,  1.0f,
-	 1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f,  1.0f,
-	 1.0f, -1.0f,  1.0f
-};
 
 const GLfloat g_quad_buffer_data[] =
 {
 	// ndc pos         // UV
-	-1.0, -1.0f, 0.0f, 0.0f, 0.0f,
-	1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-	1.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-	-1.0f, 1.0f,  0.0f,  0.0f, 1.0f
+	-0.5, -0.5f, 0.0f, 0.0f, 0.0f,
+	0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+	0.5f,  0.5f,  0.0f,  1.0f, 1.0f,
+	-0.5f, 0.5f,  0.0f,  0.0f, 1.0f
 };
 
 const unsigned int g_quad_indices_data[] =
@@ -240,67 +186,6 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	i_glslProgram.AttachShader( vertexShader );
 	i_glslProgram.AttachShader( fragmentShader );
 	i_glslProgram.Link();
-	assert( glGetError() == GL_NO_ERROR );
-}
-
-unsigned int LoadCubemap( std::vector<std::string>& i_faces )
-{
-	unsigned int textureID;
-	glGenTextures( 1, &textureID );
-	glBindTexture( GL_TEXTURE_CUBE_MAP, textureID );
-
-	unsigned int width;
-	unsigned int height;
-	std::vector<unsigned char> data;
-	for (unsigned int i = 0; i < i_faces.size(); i++)
-	{
-		LoadTextureData( i_faces[i].c_str(), data, width, height );
-		if (data.data())
-		{
-			glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<void*>(data.data())
-			);
-		}
-		else
-		{
-			std::cout << "Cubemap texture failed to load at path: " << i_faces[i] << std::endl;
-		}
-	}
-	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	glTexParameteri( GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE );
-	return textureID;
-}
-
-void InitializeSkyBox()
-{
-	std::vector<std::string> faces
-	{
-		"content/cubemap/cubemap_posx.png",
-		"content/cubemap/cubemap_negx.png",
-		"content/cubemap/cubemap_posy.png",
-		"content/cubemap/cubemap_negy.png",
-		"content/cubemap/cubemap_posz.png",
-		"content/cubemap/cubemap_negz.png"
-	};
-	Tex_cubemap = LoadCubemap( faces );
-	// VAO, VBO
-	glGenVertexArrays( 1, &VAO_cubemap );
-	glBindVertexArray( VAO_cubemap );
-
-	CompileShaders( path_vertexShader_skybox, path_fragmentShader_skybox, g_sp_skybox );
-	g_sp_skybox.Bind();
-	glUniform1i( glGetUniformLocation( g_sp_skybox.GetID(), "tex_cubemap" ), 0 );
-
-	glGenBuffers( 1, &VBO_cubemap );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubemap );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( g_skyboxVertices ), &g_skyboxVertices[0], GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), (const GLvoid*)(0) );
-	glEnableVertexAttribArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindVertexArray( 0 );
 	assert( glGetError() == GL_NO_ERROR );
 }
 
@@ -575,6 +460,18 @@ void RenderScene( bool i_bDrawShdow = false )
 		glBindVertexArray( 0 );
 	}
 
+	// Display the plane
+	{
+		g_sp_tessellation.Bind();
+		g_tex_normalMap.Bind( 0 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+		glBindVertexArray( VAO_plane );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+		assert( glGetError() == GL_NO_ERROR );
+		glBindVertexArray( 0 );
+	}
+
 	//g_sp_shadowMesh.Bind();
 	//if (i_bDrawShdow)
 	//{
@@ -664,6 +561,10 @@ void UpdateCamera()
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 
+	g_sp_tessellation.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+
 	assert( glGetError() == GL_NO_ERROR );
 }
 
@@ -688,13 +589,12 @@ void UpdateLight()
 
 	auto mat_lightSpace = mat_perspective * mat_lightSpace_view;
 
-	g_sp_quad.Bind();
-	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "near_plane" ), near_plane );
-	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "far_plane" ), far_plane );
-
 	g_sp_lightMesh.Bind();
 	cyVec3f lightSource( 1.0f, 1.0f, 1.0f );
 	glUniform3fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "lightPos" ), 1, &lightSource.elem[0] );
+
+	g_sp_tessellation.Bind();
+	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
 }
 
 void UpdateModels()
@@ -930,8 +830,10 @@ int main( int argc, char* argv[] )
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
 	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
 
-	CompileShaders( path_vertexShader_quad, path_fragmentShader_quad, g_sp_quad );
-	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
+	CompileShaders( path_vertexShader_tessellation, path_fragmentShader_tessellation, g_sp_tessellation );
+	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
+	InitializeMaterial( g_planeMesh, g_sp_tessellation );
+
 	LoadTexture( "teapot_normal.png", g_tex_normalMap );
 	LoadTexture( "teapot_disp.png", g_tex_dispMap );
 
@@ -952,9 +854,12 @@ int main( int argc, char* argv[] )
 	}
 	// Release buffers and the shader program.
 	{
-		glDeleteVertexArrays( 1, &VAO_quad );
-		glDeleteBuffers( 1, &VBO_quad );
-		glDeleteBuffers( 1, &EBO_quad );
+		glDeleteVertexArrays( 1, &VAO_plane );
+		glDeleteBuffers( 1, &VBO_plane );
+
+		glDeleteVertexArrays( 1, &VAO_light );
+		glDeleteBuffers( 1, &VBO_light );
+
 		g_tex_normalMap.Delete();
 		g_tex_dispMap.Delete();
 		g_sp_lightMesh.Delete();
