@@ -38,19 +38,19 @@ Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 cyGLRenderTexture2D g_rtt_mirror;
 cyGLRenderDepth2D g_tex_renderDepth;
 
-cyGLSLProgram g_skyboxShaderProgram;
-cyGLSLProgram g_quadShaderProgram;
-cyGLSLProgram g_shadowPassProgram;
-cyGLSLProgram g_shadowMeshProgram;
-cyGLSLProgram g_lightMeshProgram;
+cyGLSLProgram g_sp_skybox;
+cyGLSLProgram g_sp_quad;
+cyGLSLProgram g_sp_shadowPass;
+cyGLSLProgram g_sp_shadowMesh;
+cyGLSLProgram g_sp_lightMesh;
 
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
 cyTriMesh g_lightMesh;
 cyVec3f g_dir_targetToCamera;
 cyVec3f g_dir_targetTolight;
-cyVec3f g_cameraTarget;
-cyVec3f g_lightTarget;
+cyVec3f g_target_camera;
+cyVec3f g_target_light;
 
 cyMatrix4f g_mat_model = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_plane = cyMatrix4f( 1.0f );
@@ -79,11 +79,11 @@ float light_angle_pitch = 0.0f;
 float g_dis_lightToTarget = 60.0f;
 float g_dis_cameraToTarget = 60.0f;
 
-float screen_Width = 640;
-float screen_Height = 480;
+float width_screen = 640;
+float height_screen = 480;
 
-float shadow_width = 1024;
-float shadow_height = 1024;
+float width_shadow = 1024;
+float height_shadow = 1024;
 
 constexpr char const* path_vertexShader_mesh = "content/shaders/vertex_mesh.shader";
 constexpr char const* path_fragmentShader_mesh = "content/shaders/fragment_mesh.shader";
@@ -283,9 +283,9 @@ void InitializeSkyBox()
 	glGenVertexArrays( 1, &VAO_cubemap );
 	glBindVertexArray( VAO_cubemap );
 
-	CompileShaders( path_vertexShader_skybox, path_fragmentShader_skybox, g_skyboxShaderProgram );
-	g_skyboxShaderProgram.Bind();
-	glUniform1i( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "tex_cubemap" ), 0 );
+	CompileShaders( path_vertexShader_skybox, path_fragmentShader_skybox, g_sp_skybox );
+	g_sp_skybox.Bind();
+	glUniform1i( glGetUniformLocation( g_sp_skybox.GetID(), "tex_cubemap" ), 0 );
 
 	glGenBuffers( 1, &VBO_cubemap );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubemap );
@@ -327,7 +327,7 @@ void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 	i_rtt.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR );
 	i_rtt.BuildTextureMipmaps();
 	i_rtt.SetTextureMaxAnisotropy();
-	if (!i_rtt.Resize( 4, screen_Width, screen_Height ))
+	if (!i_rtt.Resize( 4, width_screen, height_screen ))
 	{
 		fprintf( stderr, "Cannot resize the renderToTexture." );
 		assert( false );
@@ -343,7 +343,7 @@ void InitializeDepthMap( cyGLRenderDepth2D& i_renderDepth2D )
 		assert( false );
 	}
 	i_renderDepth2D.SetTextureFilteringMode( GL_NEAREST, GL_NEAREST );
-	if (!i_renderDepth2D.Resize( shadow_width, shadow_height ))
+	if (!i_renderDepth2D.Resize( width_shadow, height_shadow ))
 	{
 		fprintf( stderr, "Cannot resize the render depth." );
 		assert( false );
@@ -528,14 +528,14 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 
 void InitializeView()
 {
-	g_cameraTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
-	g_lightTarget = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+	g_target_camera = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+	g_target_light = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
 
-	g_dir_targetToCamera = (g_cameraPosInWorld - g_cameraTarget).GetNormalized();
-	g_dir_targetTolight = (g_lightPosInWorld - g_lightTarget).GetNormalized();
+	g_dir_targetToCamera = (g_cameraPosInWorld - g_target_camera).GetNormalized();
+	g_dir_targetTolight = (g_lightPosInWorld - g_target_light).GetNormalized();
 
-	g_dis_cameraToTarget = (g_cameraPosInWorld - g_cameraTarget).Length();
-	g_dis_lightToTarget = (g_lightPosInWorld - g_lightTarget).Length();
+	g_dis_cameraToTarget = (g_cameraPosInWorld - g_target_camera).Length();
+	g_dis_lightToTarget = (g_lightPosInWorld - g_target_light).Length();
 }
 
 #pragma endregion Initialization
@@ -546,27 +546,27 @@ void RenderScene( bool i_bDrawShdow = false )
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	// Draw the light source
 	{
-		g_lightMeshProgram.Bind();
-		glUniformMatrix4fv( glGetUniformLocation( g_lightMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_light.cell );
+		g_sp_lightMesh.Bind();
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_light.cell );
 		glBindVertexArray( VAO_light );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
 
-	g_shadowMeshProgram.Bind();
+	g_sp_shadowMesh.Bind();
 	if (i_bDrawShdow)
 	{
-		glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "tex_shadowMap" ), 0 );
+		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap" ), 0 );
 	}
 
-	glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 0 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 0 );
 	// Draw the plane 
 	{
-		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		if (i_bDrawShdow)
 		{
-			glUniform1i( glGetUniformLocation( g_shadowMeshProgram.GetID(), "shadowing" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 1 );
 		}
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
@@ -575,7 +575,7 @@ void RenderScene( bool i_bDrawShdow = false )
 	}
 	// Draw the teapot
 	{
-		glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -587,10 +587,10 @@ void RenderScene( bool i_bDrawShdow = false )
 void GenerateShadowMap()
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	g_shadowPassProgram.Bind();
+	g_sp_shadowPass.Bind();
 	// Draw the teapot
 	{
-		glUniformMatrix4fv( glGetUniformLocation( g_shadowPassProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -598,7 +598,7 @@ void GenerateShadowMap()
 	}
 	// Draw the plane 
 	{
-		glUniformMatrix4fv( glGetUniformLocation( g_shadowPassProgram.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -629,20 +629,20 @@ void UpdateCamera()
 	auto mat_camera_rot = cyMatrix4f( 1.0f );
 	mat_camera_rot.SetRotationXYZ( glm::radians( camera_angle_pitch ), glm::radians( camera_angle_yaw ), 0 );
 	auto dir_camera = mat_camera_rot * cyVec4f( g_dir_targetToCamera, 0.0f );
-	g_cameraPosInWorld = g_cameraTarget + cyVec3f( dir_camera ) * g_dis_cameraToTarget;
+	g_cameraPosInWorld = g_target_camera + cyVec3f( dir_camera ) * g_dis_cameraToTarget;
 
-	auto mat_cameraView = GetLookAtMatrix( g_cameraPosInWorld, g_cameraTarget, cyVec3f( 0, 1.0, 0 ) );
+	auto mat_cameraView = GetLookAtMatrix( g_cameraPosInWorld, g_target_camera, cyVec3f( 0, 1.0, 0 ) );
 	auto mat_perspective = cyMatrix4f( 1.0f );
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), screen_Width / screen_Height, 5.0f, 1000.0f );
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), width_screen / height_screen, 5.0f, 1000.0f );
 
-	g_shadowMeshProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
-	glUniform3fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "viewPos" ), 1, &g_cameraPosInWorld.elem[0] );
+	g_sp_shadowMesh.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "viewPos" ), 1, &g_cameraPosInWorld.elem[0] );
 
-	g_lightMeshProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_lightMeshProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_lightMeshProgram.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	g_sp_lightMesh.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 
 	assert( glGetError() == GL_NO_ERROR );
 }
@@ -652,36 +652,36 @@ void UpdateLight()
 	auto mat_light_rot = cyMatrix4f( 1.0f );
 	mat_light_rot.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
 	auto dir_light = mat_light_rot * cyVec4f( g_dir_targetTolight, 0.0f );
-	g_lightPosInWorld = g_lightTarget + cyVec3f( dir_light ) * g_dis_lightToTarget;
+	g_lightPosInWorld = g_target_light + cyVec3f( dir_light ) * g_dis_lightToTarget;
 
 	auto mat_trans = cyMatrix4f( 1.0 );
 	mat_trans.SetTranslation( g_lightPosInWorld );
 	g_mat_light = mat_trans * mat_light_rot;
 
 	auto worldUp = cyVec3f( 0, 1, 0 );
-	auto mat_lightSpace_view = GetLookAtMatrix( g_lightPosInWorld, g_lightTarget, worldUp );
+	auto mat_lightSpace_view = GetLookAtMatrix( g_lightPosInWorld, g_target_light, worldUp );
 
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	float near_plane = 1.0f;
 	float far_plane = 200.0f;
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), shadow_width / shadow_height, near_plane, far_plane );
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), width_shadow / height_shadow, near_plane, far_plane );
 
 	auto mat_lightSpace = mat_perspective * mat_lightSpace_view;
 
-	g_quadShaderProgram.Bind();
-	glUniform1f( glGetUniformLocation( g_quadShaderProgram.GetID(), "near_plane" ), near_plane );
-	glUniform1f( glGetUniformLocation( g_quadShaderProgram.GetID(), "far_plane" ), far_plane );
+	g_sp_quad.Bind();
+	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "near_plane" ), near_plane );
+	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "far_plane" ), far_plane );
 
-	g_shadowMeshProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
-	glUniform3fv( glGetUniformLocation( g_shadowMeshProgram.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
+	g_sp_shadowMesh.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+	glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
 
-	g_shadowPassProgram.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_shadowPassProgram.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+	g_sp_shadowPass.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
 
-	g_lightMeshProgram.Bind();
+	g_sp_lightMesh.Bind();
 	cyVec3f lightSource( 1.0f, 1.0f, 1.0f );
-	glUniform3fv( glGetUniformLocation( g_lightMeshProgram.GetID(), "lightPos" ), 1, &lightSource.elem[0] );
+	glUniform3fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "lightPos" ), 1, &lightSource.elem[0] );
 }
 
 void UpdateModels()
@@ -690,11 +690,11 @@ void UpdateModels()
 	g_mat_model.SetTranslation( cyVec3f( 0, 10, 0 ) );
 
 #if defined(RENDER_SHADOW)
-	g_quadShaderProgram.Bind();
+	g_sp_quad.Bind();
 	auto mat_quad_rot = cyMatrix4f( 1.0f );
 	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-	glUniformMatrix4fv( glGetUniformLocation( g_quadShaderProgram.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
-	glUniform1f( glGetUniformLocation( g_quadShaderProgram.GetID(), "dis" ), 1.0f );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_quad.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
+	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "dis" ), 1.0f );
 #endif
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
@@ -890,7 +890,7 @@ int main( int argc, char* argv[] )
 		return -1;
 	}
 	/* Create a windowed mode window and its OpenGL context */
-	pWindow = glfwCreateWindow( screen_Width, screen_Height, "Hello World", NULL, NULL );
+	pWindow = glfwCreateWindow( width_screen, height_screen, "Hello World", NULL, NULL );
 	if (!pWindow)
 	{
 		glfwTerminate();
@@ -916,23 +916,23 @@ int main( int argc, char* argv[] )
 	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
 	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
 #elif defined(RENDER_SHADOW)
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_lightMeshProgram );
-	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_shadowMeshProgram );
-	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_shadowPassProgram );
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
+	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_sp_shadowMesh );
+	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_sp_shadowPass );
 #else
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
 #endif
 	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
-	InitializeMaterial( g_objMesh, g_shadowMeshProgram );
+	InitializeMaterial( g_objMesh, g_sp_shadowMesh );
 
 #if defined(RENDER_SHADOW)
-	CompileShaders( path_vertexShader_quad, path_fragmentShader_quad, g_quadShaderProgram );
+	CompileShaders( path_vertexShader_quad, path_fragmentShader_quad, g_sp_quad );
 	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
 	InitializeDepthMap( g_tex_renderDepth );
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
-	InitializeMaterial( g_lightMesh, g_lightMeshProgram );
+	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
 #endif
 
 #if defined(RENDER_TO_TEXTURE)
@@ -987,9 +987,9 @@ int main( int argc, char* argv[] )
 
 #if defined(RENDER_SHADOW)
 		g_tex_renderDepth.Delete();
-		g_shadowPassProgram.Delete();
-		g_shadowMeshProgram.Delete();
-		g_lightMeshProgram.Delete();
+		g_sp_shadowPass.Delete();
+		g_sp_shadowMesh.Delete();
+		g_sp_lightMesh.Delete();
 		glDeleteVertexArrays( 1, &VAO_quad );
 		glDeleteBuffers( 1, &VBO_quad );
 		glDeleteBuffers( 1, &EBO_quad );
