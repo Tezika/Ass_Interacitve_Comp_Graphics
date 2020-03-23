@@ -39,6 +39,9 @@ Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
 cyGLRenderTexture2D g_rtt_mirror;
 cyGLRenderDepth2D g_tex_renderDepth;
 
+cyGLTexture2D g_tex_normalMap;
+cyGLTexture2D g_tex_dispMap;
+
 cyGLSLProgram g_sp_skybox;
 cyGLSLProgram g_sp_quad;
 cyGLSLProgram g_sp_shadowPass;
@@ -105,6 +108,7 @@ constexpr char const* path_vertexShader_reflection = "content/shaders/vertex_ref
 constexpr char const* path_fragmentShader_reflection = "content/shaders/fragment_reflection.shader";
 
 constexpr char const* path_meshResource = "content/mesh/";
+constexpr char const* path_texResource = "content/tex_mapping/";
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
@@ -177,17 +181,19 @@ const unsigned int count_quad_indices = 6;
 
 namespace
 {
-	void LoadTextureData( const char* i_texturePath, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
+	bool LoadTextureData( const char* i_texturePath, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
 	{
 		io_data.clear();
 		auto errorCode = lodepng::decode( io_data, io_width, io_height, i_texturePath );
 		if (errorCode)
 		{
 			fprintf( stderr, "decoder error %d : %s.\n", errorCode, lodepng_error_text( errorCode ) );
+			return false;
 		}
 		else
 		{
 			fprintf( stdout, "Loaded/Decoded the %s texture successfully.\n", i_texturePath );
+			return true;
 		}
 	}
 
@@ -299,7 +305,6 @@ void InitializeSkyBox()
 }
 
 #pragma region  
-
 void InitializeMaterial( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 {
 	if (i_mesh.NM() > 0)
@@ -349,6 +354,21 @@ void InitializeDepthMap( cyGLRenderDepth2D& i_renderDepth2D )
 		fprintf( stderr, "Cannot resize the render depth." );
 		assert( false );
 	}
+}
+
+void LoadTexture( const char* i_name_tex, cyGLTexture2D& io_tex )
+{
+	std::string path_texFile( path_texResource );
+	path_texFile += i_name_tex;
+	unsigned int width_tex;
+	unsigned int height_tex;
+	std::vector<unsigned char> data_tex;
+	if (!LoadTextureData( path_texFile.c_str(), data_tex, width_tex, height_tex ))
+	{
+		assert( false );
+	}
+	io_tex.SetImage<unsigned char>( data_tex.data(), 3, width_tex, height_tex );
+	fprintf_s( stdout, "Loaded the %s texture successfully.\n", i_name_tex );
 }
 
 void InitializeTextures( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
@@ -582,7 +602,6 @@ void RenderScene( bool i_bDrawShdow = false )
 	//	assert( glGetError() == GL_NO_ERROR );
 	//	glBindVertexArray( 0 );
 	//}
-
 }
 
 void GenerateShadowMap()
@@ -611,13 +630,13 @@ void Display()
 {
 
 	// Render the scene to the shadow map from the light perspective
-	{
-		g_tex_renderDepth.Bind();
-		glCullFace( GL_FRONT );
-		GenerateShadowMap();
-		glCullFace( GL_BACK );
-		g_tex_renderDepth.Unbind();
-	}
+	//{
+	//	g_tex_renderDepth.Bind();
+	//	glCullFace( GL_FRONT );
+	//	GenerateShadowMap();
+	//	glCullFace( GL_BACK );
+	//	g_tex_renderDepth.Unbind();
+	//}
 
 	{
 		RenderScene( true );
@@ -636,10 +655,10 @@ void UpdateCamera()
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), width_screen / height_screen, 5.0f, 1000.0f );
 
-	g_sp_shadowMesh.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
-	glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "viewPos" ), 1, &g_cameraPosInWorld.elem[0] );
+	//g_sp_shadowMesh.Bind();
+	//glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	//glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	//glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "viewPos" ), 1, &g_cameraPosInWorld.elem[0] );
 
 	g_sp_lightMesh.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
@@ -672,13 +691,6 @@ void UpdateLight()
 	g_sp_quad.Bind();
 	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "near_plane" ), near_plane );
 	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "far_plane" ), far_plane );
-
-	g_sp_shadowMesh.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
-	glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
-
-	g_sp_shadowPass.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
 
 	g_sp_lightMesh.Bind();
 	cyVec3f lightSource( 1.0f, 1.0f, 1.0f );
@@ -913,44 +925,15 @@ int main( int argc, char* argv[] )
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 
-#if defined(USE_REFlECTION_SHADER)
-	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
-	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
-#elif defined(RENDER_SHADOW)
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
-	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_sp_shadowMesh );
-	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_sp_shadowPass );
-#elif defined(TESSELLATION)
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
-#else
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_shadowMesh );
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_shadowMesh );
-#endif
-	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
-	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
-	InitializeMaterial( g_objMesh, g_sp_shadowMesh );
 
-#if defined(RENDER_SHADOW)
+	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
+	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
+	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
+
 	CompileShaders( path_vertexShader_quad, path_fragmentShader_quad, g_sp_quad );
 	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
-	InitializeDepthMap( g_tex_renderDepth );
-	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
-	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
-
-#endif
-
-#if defined(RENDER_TO_TEXTURE)
-	InitializeRenderTexture( g_rtt_mirror );
-#endif
-
-#if defined(RENDER_SKYBOX)
-	InitializeSkyBox();
-#endif
-
-#if defined(TESSELLATION)
-	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
-	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
-#endif
+	LoadTexture( "teapot_normal.png", g_tex_normalMap );
+	LoadTexture( "teapot_disp.png", g_tex_dispMap );
 
 	InitializeView();
 
@@ -960,7 +943,6 @@ int main( int argc, char* argv[] )
 
 		UpdateCamera();
 		UpdateLight();
-		UpdateModels();
 
 		Display();
 		/* Swap front and back buffers */
@@ -970,42 +952,14 @@ int main( int argc, char* argv[] )
 	}
 	// Release buffers and the shader program.
 	{
-		glDeleteVertexArrays( 1, &VAO );
-		glDeleteBuffers( 1, &VBO );
-		glDeleteVertexArrays( 1, &VAO_plane );
-		glDeleteBuffers( 1, &VBO_plane );
-		assert( glGetError() == GL_NO_ERROR );
-		assert( glGetError() == GL_NO_ERROR );
-		delete pDiffuseTex;
-		pDiffuseTex = nullptr;
-		delete pSpecularTex;
-		pSpecularTex = nullptr;
-		assert( glGetError() == GL_NO_ERROR );
-
-#if defined(RENDER_TO_TEXTURE)
-		g_rtt_mirror.Delete();
-		assert( glGetError() == GL_NO_ERROR );
-#endif
-
-#if defined(RENDER_SKYBOX)
-		glDeleteVertexArrays( 1, &VAO_cubemap );
-		glDeleteBuffers( 1, &VBO_cubemap );
-		g_skyboxShaderProgram.Delete();
-		assert( glGetError() == GL_NO_ERROR );
-#endif
-
-#if defined(RENDER_SHADOW)
-		g_tex_renderDepth.Delete();
-		g_sp_shadowPass.Delete();
-		g_sp_shadowMesh.Delete();
-		g_sp_lightMesh.Delete();
 		glDeleteVertexArrays( 1, &VAO_quad );
 		glDeleteBuffers( 1, &VBO_quad );
 		glDeleteBuffers( 1, &EBO_quad );
+		g_tex_normalMap.Delete();
+		g_tex_dispMap.Delete();
+		g_sp_lightMesh.Delete();
+		g_sp_quad.Delete();
 
-		glDeleteVertexArrays( 1, &VAO_light );
-		glDeleteBuffers( 1, &VBO_light );
-#endif
 		if (glGetError() != GL_NO_ERROR)
 		{
 			assert( false );
