@@ -65,7 +65,7 @@ float camera_angle_pitch = 0;
 float camera_moveSpeed_perframe = 0.05f;
 
 cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 30.0f, 40.0f );
-cyVec3f g_cameraPosInWorld = cyVec3f( 40.0f, 100.0f, 40.0f );
+cyVec3f g_cameraPosInWorld = cyVec3f( 0.0, 0.0, 100.0f );
 
 float g_moveSpeed = 20;
 float g_rotate_yaw = 20;
@@ -451,8 +451,8 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 
 void InitializeView()
 {
-	g_target_camera = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
-	g_target_light = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+	g_target_camera = (g_planeMesh.GetBoundMax() + g_planeMesh.GetBoundMin()) / 2;
+	g_target_light = (g_planeMesh.GetBoundMax() + g_planeMesh.GetBoundMin()) / 2;
 
 	g_dir_targetToCamera = (g_cameraPosInWorld - g_target_camera).GetNormalized();
 	g_dir_targetTolight = (g_lightPosInWorld - g_target_light).GetNormalized();
@@ -477,17 +477,17 @@ void RenderScene( bool i_bDrawShdow = false )
 		glBindVertexArray( 0 );
 	}
 
-	//// Display the plane
-	//{
-	//	g_sp_tessellation.Bind();
-	//	g_tex_normalMap.Bind( 0 );
-	//	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
-	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-	//	glBindVertexArray( VAO_plane );
-	//	glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-	//	assert( glGetError() == GL_NO_ERROR );
-	//	glBindVertexArray( 0 );
-	//}
+	// Display the plane
+	{
+		g_sp_tessellation.Bind();
+		g_tex_normalMap.Bind( 0 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+		glBindVertexArray( VAO_plane );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+		assert( glGetError() == GL_NO_ERROR );
+		glBindVertexArray( 0 );
+	}
 
 	// Draw the outline of the plane
 	{
