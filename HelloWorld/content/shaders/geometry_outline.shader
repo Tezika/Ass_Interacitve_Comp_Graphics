@@ -5,7 +5,7 @@
 // The locations assigned are arbitrary
 // but must match the C calls to glVertexAttribPointer()
 layout (points) in;
-layout (points, max_vertices = 1) out;
+layout (points, max_vertices = 10) out;
 
 // Output
 //=======

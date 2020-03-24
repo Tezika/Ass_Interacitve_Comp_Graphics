@@ -101,7 +101,9 @@ constexpr char const* path_fragmentShader_shadowPass = "content/shaders/fragment
 constexpr char const* path_vertexShader_quad = "content/shaders/vertex_quad_texture.shader";
 constexpr char const* path_fragmentShader_quad = "content/shaders/fragment_quad_texture.shader";
 
-const char const* path_geometryShader_plane = "content/shaders/geometry_plane.shader";
+constexpr char const* path_vertexShader_outline = "content/shaders/vertex_outline.shader";
+constexpr char const* path_fragmentShader_outline = "content/shaders/fragment_outline.shader";
+constexpr char const* path_geometryShader_outline = "content/shaders/geometry_outline.shader";
 
 constexpr char const* path_meshResource = "content/mesh/";
 constexpr char const* path_texResource = "content/tex_mapping/";
@@ -475,14 +477,24 @@ void RenderScene( bool i_bDrawShdow = false )
 		glBindVertexArray( 0 );
 	}
 
-	// Display the plane
+	//// Display the plane
+	//{
+	//	g_sp_tessellation.Bind();
+	//	g_tex_normalMap.Bind( 0 );
+	//	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
+	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+	//	glBindVertexArray( VAO_plane );
+	//	glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+	//	assert( glGetError() == GL_NO_ERROR );
+	//	glBindVertexArray( 0 );
+	//}
+
+	// Draw the outline of the plane
 	{
-		g_sp_tessellation.Bind();
-		g_tex_normalMap.Bind( 0 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+		g_sp_outline.Bind();
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+		glDrawArrays( GL_POINTS, 0, 6 );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
@@ -567,11 +579,6 @@ void UpdateCamera()
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	mat_perspective.SetPerspective( glm::radians( 60.0f ), width_screen / height_screen, 5.0f, 1000.0f );
 
-	//g_sp_shadowMesh.Bind();
-	//glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
-	//glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
-	//glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "viewPos" ), 1, &g_cameraPosInWorld.elem[0] );
-
 	g_sp_lightMesh.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
@@ -579,6 +586,10 @@ void UpdateCamera()
 	g_sp_tessellation.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+
+	g_sp_outline.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 
 	assert( glGetError() == GL_NO_ERROR );
 }
@@ -848,6 +859,8 @@ int main( int argc, char* argv[] )
 	CompileShaders( path_vertexShader_tessellation, path_fragmentShader_tessellation, g_sp_tessellation );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_sp_tessellation );
+
+	CompileShaders( path_vertexShader_outline, path_fragmentShader_outline, g_sp_outline, path_geometryShader_outline );
 
 	LoadTexture( "teapot_normal.png", g_tex_normalMap );
 	LoadTexture( "teapot_disp.png", g_tex_dispMap );
