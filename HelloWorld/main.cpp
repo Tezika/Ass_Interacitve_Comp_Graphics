@@ -42,6 +42,7 @@ cyGLSLProgram g_sp_shadowPass;
 cyGLSLProgram g_sp_shadowMesh;
 cyGLSLProgram g_sp_lightMesh;
 cyGLSLProgram g_sp_tessellation;
+cyGLSLProgram g_sp_outline;
 
 cyTriMesh g_objMesh;
 cyTriMesh g_planeMesh;
@@ -100,6 +101,7 @@ constexpr char const* path_fragmentShader_shadowPass = "content/shaders/fragment
 constexpr char const* path_vertexShader_quad = "content/shaders/vertex_quad_texture.shader";
 constexpr char const* path_fragmentShader_quad = "content/shaders/fragment_quad_texture.shader";
 
+const char const* path_geometryShader_plane = "content/shaders/geometry_plane.shader";
 
 constexpr char const* path_meshResource = "content/mesh/";
 constexpr char const* path_texResource = "content/tex_mapping/";
@@ -159,7 +161,7 @@ namespace
 	}
 }
 
-void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram )
+void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram, const char* i_path_geometryShader = "" )
 {
 	i_glslProgram.Delete();
 	assert( glGetError() == GL_NO_ERROR );
@@ -184,6 +186,19 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 		fprintf( stdout, "Compiled the fragment shader, %s, successfully.\n", i_path_fragementShader );
 	}
 	i_glslProgram.AttachShader( vertexShader );
+	if (strlen( i_path_geometryShader ) != 0)
+	{
+		cyGLSLShader geometryShader;
+		if (!geometryShader.CompileFile( i_path_geometryShader, GL_GEOMETRY_SHADER ))
+		{
+			fprintf( stderr, "Failed to compile the geometry shader, %s.\n", i_path_geometryShader );
+		}
+		else
+		{
+			fprintf( stdout, "Compiled the geometry shader, %s, successfully.\n", i_path_geometryShader );
+		}
+		i_glslProgram.AttachShader( geometryShader );
+	}
 	i_glslProgram.AttachShader( fragmentShader );
 	i_glslProgram.Link();
 	assert( glGetError() == GL_NO_ERROR );
