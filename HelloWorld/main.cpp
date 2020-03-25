@@ -845,8 +845,6 @@ int main( int argc, char* argv[] )
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
 	glEnable( GL_DEPTH_TEST );
-	glEnable( GL_TEXTURE_2D );
-
 
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
@@ -858,8 +856,8 @@ int main( int argc, char* argv[] )
 
 	CompileShaders( path_vertexShader_outline, path_fragmentShader_outline, g_sp_outline, path_geometryShader_outline );
 
-	LoadTexture( "teapot_normal.png", g_tex_normalMap );
-	LoadTexture( "teapot_disp.png", g_tex_dispMap );
+	LoadTexture( "teapot_normal_flip.png", g_tex_normalMap );
+	LoadTexture( "teapot_disp_flip.png", g_tex_dispMap );
 
 	InitializeView();
 
