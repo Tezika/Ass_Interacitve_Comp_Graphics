@@ -61,6 +61,7 @@ bool bControlTheLight = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
+float g_level_tess = 1.0f;
 
 float camera_moveSpeed_perframe = 0.05f;
 
@@ -535,6 +536,7 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		g_sp_outline.Bind();
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+		glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -696,6 +698,24 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 		else if (i_action == GLFW_RELEASE)
 		{
 			bControlTheLight = false;
+		}
+	}
+	if (i_key == GLFW_KEY_LEFT)
+	{
+		if (i_action == GLFW_RELEASE)
+		{
+			if (g_level_tess > 1.0f)
+			{
+				g_level_tess -= 1.0f;
+			}
+		}
+	}
+	if (i_key == GLFW_KEY_RIGHT)
+	{
+		if (i_action == GLFW_RELEASE)
+		{
+			g_level_tess += 1.0f;
+
 		}
 	}
 }
