@@ -106,7 +106,7 @@ constexpr char const* path_fragmentShader_outline = "content/shaders/fragment_ou
 constexpr char const* path_geometryShader_outline = "content/shaders/geometry_outline.shader";
 
 constexpr char const* path_tess_control = "content/shaders/tess_control.shader";
-constexpr char const* path_tess_evaulate = "content/shaders/tess_evaluate.shader";
+constexpr char const* path_tess_evaulation = "content/shaders/tess_evaluation.shader";
 
 constexpr char const* path_meshResource = "content/mesh/";
 constexpr char const* path_texResource = "content/tex_mapping/";
@@ -170,7 +170,7 @@ void CompileShaders( const char* i_path_vertexShader,
 	cyGLSLProgram& i_glslProgram,
 	const char* i_path_geometryShader = "",
 	const char* i_path_tess_control = "",
-	const char* i_path_tess_evaluate = ""
+	const char* i_path_tess_evaluation = ""
 )
 {
 	i_glslProgram.Delete();
@@ -212,16 +212,16 @@ void CompileShaders( const char* i_path_vertexShader,
 		i_glslProgram.AttachShader( tess_control );
 	}
 	// Tessellation evaluate shader
-	if (strlen( i_path_tess_evaluate ))
+	if (strlen( i_path_tess_evaluation ))
 	{
 		cyGLSLShader tess_evaluate;
-		if (!tess_evaluate.CompileFile( i_path_tess_evaluate, GL_TESS_CONTROL_SHADER ))
+		if (!tess_evaluate.CompileFile( i_path_tess_evaluation, GL_TESS_EVALUATION_SHADER ))
 		{
-			fprintf( stderr, "Failed to compile the tessellation evaluate shader, %s.\n", i_path_tess_evaluate );
+			fprintf( stderr, "Failed to compile the tessellation evaluation shader, %s.\n", i_path_tess_evaluation );
 		}
 		else
 		{
-			fprintf( stdout, "Compiled the tessellation evaluate shader, %s, successfully.\n", i_path_tess_evaluate );
+			fprintf( stdout, "Compiled the tessellation evaluation shader, %s, successfully.\n", i_path_tess_evaluation );
 		}
 		i_glslProgram.AttachShader( tess_evaluate );
 	}
@@ -520,23 +520,23 @@ void RenderScene( bool i_bDrawShdow = false )
 	}
 
 	// Display the plane
-	{
-		g_sp_tessellation.Bind();
-		g_tex_normalMap.Bind( 0 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
-	}
+	//{
+	//	g_sp_tessellation.Bind();
+	//	g_tex_normalMap.Bind( 0 );
+	//	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
+	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+	//	glBindVertexArray( VAO_plane );
+	//	glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
+	//	assert( glGetError() == GL_NO_ERROR );
+	//	glBindVertexArray( 0 );
+	//}
 
-	// Draw the outline of the plane
+	// Draw the outline of the plane separately
 	{
 		g_sp_outline.Bind();
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 6 );
+		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
@@ -626,8 +626,8 @@ void UpdateCamera()
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 
 	g_sp_tessellation.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 
 	g_sp_outline.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
@@ -893,9 +893,9 @@ int main( int argc, char* argv[] )
 		path_vertexShader_tessellation,
 		path_fragmentShader_tessellation,
 		g_sp_tessellation,
-		"",
+		path_geometryShader_outline,
 		path_tess_control,
-		path_tess_evaulate
+		path_tess_evaulation
 	);
 
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
@@ -905,7 +905,9 @@ int main( int argc, char* argv[] )
 		path_vertexShader_outline,
 		path_fragmentShader_outline,
 		g_sp_outline,
-		path_geometryShader_outline
+		path_geometryShader_outline,
+		path_tess_control,
+		path_tess_evaulation
 	);
 
 	// Load the flip .png to resolve the texture upside down bug.
