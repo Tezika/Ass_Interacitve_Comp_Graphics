@@ -105,12 +105,14 @@ constexpr char const* path_vertexShader_outline = "content/shaders/vertex_outlin
 constexpr char const* path_fragmentShader_outline = "content/shaders/fragment_outline.shader";
 constexpr char const* path_geometryShader_outline = "content/shaders/geometry_outline.shader";
 
+constexpr char const* path_tess_control = "content/shaders/tess_control.shader";
+constexpr char const* path_tess_evaulate = "content/shaders/tess_evaluate.shader";
+
 constexpr char const* path_meshResource = "content/mesh/";
 constexpr char const* path_texResource = "content/tex_mapping/";
 
 bool left_mouseBtn_drag = false;
 bool right_mouseBtn_drag = false;
-
 
 const GLfloat g_quad_buffer_data[] =
 {
@@ -163,7 +165,13 @@ namespace
 	}
 }
 
-void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram, const char* i_path_geometryShader = "" )
+void CompileShaders( const char* i_path_vertexShader,
+	const char* i_path_fragementShader,
+	cyGLSLProgram& i_glslProgram,
+	const char* i_path_geometryShader = "",
+	const char* i_path_tess_control = "",
+	const char* i_path_tess_evaluate = ""
+)
 {
 	i_glslProgram.Delete();
 	assert( glGetError() == GL_NO_ERROR );
@@ -188,7 +196,38 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 		fprintf( stdout, "Compiled the fragment shader, %s, successfully.\n", i_path_fragementShader );
 	}
 	i_glslProgram.AttachShader( vertexShader );
-	if (strlen( i_path_geometryShader ) != 0)
+
+	// Tessellation control shader
+	if (strlen( i_path_tess_control ))
+	{
+		cyGLSLShader tess_control;
+		if (!tess_control.CompileFile( i_path_tess_control, GL_TESS_CONTROL_SHADER ))
+		{
+			fprintf( stderr, "Failed to compile the tessellation control shader, %s.\n", i_path_tess_control );
+		}
+		else
+		{
+			fprintf( stdout, "Compiled the tessellation control shader, %s, successfully.\n", i_path_tess_control );
+		}
+		i_glslProgram.AttachShader( tess_control );
+	}
+	// Tessellation evaluate shader
+	if (strlen( i_path_tess_evaluate ))
+	{
+		cyGLSLShader tess_evaluate;
+		if (!tess_evaluate.CompileFile( i_path_tess_evaluate, GL_TESS_CONTROL_SHADER ))
+		{
+			fprintf( stderr, "Failed to compile the tessellation evaluate shader, %s.\n", i_path_tess_evaluate );
+		}
+		else
+		{
+			fprintf( stdout, "Compiled the tessellation evaluate shader, %s, successfully.\n", i_path_tess_evaluate );
+		}
+		i_glslProgram.AttachShader( tess_evaluate );
+	}
+
+	// Geometry shader
+	if (strlen( i_path_geometryShader ))
 	{
 		cyGLSLShader geometryShader;
 		if (!geometryShader.CompileFile( i_path_geometryShader, GL_GEOMETRY_SHADER ))
@@ -209,20 +248,20 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 #pragma region  
 void InitializeMaterial( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 {
-	if (i_mesh.NM() > 0)
-	{
-		i_shaderProgram.Bind();
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), i_mesh.M( 0 ).Kd[0], i_mesh.M( 0 ).Kd[1], i_mesh.M( 0 ).Kd[2] );
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), i_mesh.M( 0 ).Ka[0], i_mesh.M( 0 ).Ka[1], i_mesh.M( 0 ).Ka[2] );
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), i_mesh.M( 0 ).Ks[0], i_mesh.M( 0 ).Ks[1], i_mesh.M( 0 ).Ks[2] );
-	}
-	else
-	{
-		i_shaderProgram.Bind();
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), 0.5f, 0.5, 0.5f );
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), 0.5f, 0.5f, 0.5f );
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), 0.80099994f, 0.80099994f, 0.80099994f );
-	}
+	//if (i_mesh.NM() > 0)
+	//{
+	//	i_shaderProgram.Bind();
+	//	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), i_mesh.M( 0 ).Kd[0], i_mesh.M( 0 ).Kd[1], i_mesh.M( 0 ).Kd[2] );
+	//	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), i_mesh.M( 0 ).Ka[0], i_mesh.M( 0 ).Ka[1], i_mesh.M( 0 ).Ka[2] );
+	//	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), i_mesh.M( 0 ).Ks[0], i_mesh.M( 0 ).Ks[1], i_mesh.M( 0 ).Ks[2] );
+	//}
+	//else
+	//{
+	i_shaderProgram.Bind();
+	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), 0.5f, 0.5, 0.5f );
+	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), 0.5f, 0.5f, 0.5f );
+	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), 0.80099994f, 0.80099994f, 0.80099994f );
+	//}
 }
 
 void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
@@ -270,7 +309,7 @@ void LoadTexture( const char* i_name_tex, cyGLTexture2D& io_tex )
 		assert( false );
 	}
 	io_tex.Initialize();
-	io_tex.SetWrappingMode(GL_REPEAT, GL_REPEAT);
+	io_tex.SetWrappingMode( GL_REPEAT, GL_REPEAT );
 	io_tex.SetImage<unsigned char>( data_tex.data(), 4, width_tex, height_tex, 0 );
 	io_tex.BuildMipmaps();
 	fprintf_s( stdout, "Loaded the %s texture successfully.\n", i_name_tex );
@@ -497,7 +536,7 @@ void RenderScene( bool i_bDrawShdow = false )
 		g_sp_outline.Bind();
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 6);
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
@@ -850,11 +889,24 @@ int main( int argc, char* argv[] )
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
 	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
 
-	CompileShaders( path_vertexShader_tessellation, path_fragmentShader_tessellation, g_sp_tessellation );
+	CompileShaders(
+		path_vertexShader_tessellation,
+		path_fragmentShader_tessellation,
+		g_sp_tessellation,
+		"",
+		path_tess_control,
+		path_tess_evaulate
+	);
+
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_sp_tessellation );
 
-	CompileShaders( path_vertexShader_outline, path_fragmentShader_outline, g_sp_outline, path_geometryShader_outline );
+	CompileShaders(
+		path_vertexShader_outline,
+		path_fragmentShader_outline,
+		g_sp_outline,
+		path_geometryShader_outline
+	);
 
 	// Load the flip .png to resolve the texture upside down bug.
 	LoadTexture( "teapot_normal_flip.png", g_tex_normalMap );
