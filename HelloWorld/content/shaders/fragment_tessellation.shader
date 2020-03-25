@@ -11,8 +11,6 @@ in vec3 lightPos;
 in vec3 normal;
 out vec4 o_color;
 
-uniform sampler2D tex_normalMap;
-
 uniform vec3 diffuseColor;
 uniform vec3 ambientColor;
 uniform vec3 specularColor;

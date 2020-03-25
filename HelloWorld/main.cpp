@@ -260,9 +260,11 @@ void InitializeMaterial( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 	//else
 	//{
 	i_shaderProgram.Bind();
+	assert( glGetError() == GL_NO_ERROR );
 	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), 0.5f, 0.5, 0.5f );
 	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), 0.5f, 0.5f, 0.5f );
 	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), 0.80099994f, 0.80099994f, 0.80099994f );
+
 	//}
 }
 
@@ -521,13 +523,14 @@ void RenderScene( bool i_bDrawShdow = false )
 		glBindVertexArray( 0 );
 	}
 
-	 //Display the plane
+	//Display the plane
 	{
 		g_sp_tessellation.Bind();
 		g_tex_normalMap.Bind( 0 );
 		g_tex_dispMap.Bind( 1 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
+		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
@@ -916,14 +919,13 @@ int main( int argc, char* argv[] )
 		path_vertexShader_tessellation,
 		path_fragmentShader_tessellation,
 		g_sp_tessellation,
-		path_geometryShader_tess,
+		"",
 		path_tess_control,
 		path_tess_evaulation
 	);
 
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_sp_tessellation );
-
 	CompileShaders(
 		path_vertexShader_outline,
 		path_fragmentShader_outline,

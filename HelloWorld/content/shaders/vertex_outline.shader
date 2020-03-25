@@ -28,6 +28,5 @@ void main()
 {
 	gl_Position = mat_projection * mat_view * mat_model * vec4(i_vertexPosition_local,1);
 	v_position = gl_Position;
-	v_normal = vec3(1, 0, 0);
 	v_texCoord = vec2(0,0);
 }
