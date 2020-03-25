@@ -10,6 +10,10 @@ uniform mat4 mat_model;
 uniform mat4 mat_view;
 uniform mat4 mat_projection;
 
+out vec4 v_position;
+out vec3 v_normal;
+out vec2 v_texCoord;
+
 // Output
 //=======
 // layout( location = 1) out vec4 o_vertexColor;
@@ -23,4 +27,7 @@ uniform mat4 mat_projection;
 void main()
 {
 	gl_Position = mat_projection * mat_view * mat_model * vec4(i_vertexPosition_local,1);
+	v_position = gl_Position;
+	v_normal = vec3(1, 0, 0);
+	v_texCoord = vec2(0,0);
 }

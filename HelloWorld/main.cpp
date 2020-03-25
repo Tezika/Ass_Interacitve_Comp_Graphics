@@ -105,6 +105,7 @@ constexpr char const* path_fragmentShader_quad = "content/shaders/fragment_quad_
 constexpr char const* path_vertexShader_outline = "content/shaders/vertex_outline.shader";
 constexpr char const* path_fragmentShader_outline = "content/shaders/fragment_outline.shader";
 constexpr char const* path_geometryShader_outline = "content/shaders/geometry_outline.shader";
+constexpr char const* path_geometryShader_tess = "content/shaders/geometry_tess.shader";
 
 constexpr char const* path_tess_control = "content/shaders/tess_control.shader";
 constexpr char const* path_tess_evaulation = "content/shaders/tess_evaluation.shader";
@@ -520,17 +521,19 @@ void RenderScene( bool i_bDrawShdow = false )
 		glBindVertexArray( 0 );
 	}
 
-	// Display the plane
-	//{
-	//	g_sp_tessellation.Bind();
-	//	g_tex_normalMap.Bind( 0 );
-	//	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
-	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-	//	glBindVertexArray( VAO_plane );
-	//	glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
-	//	assert( glGetError() == GL_NO_ERROR );
-	//	glBindVertexArray( 0 );
-	//}
+	 //Display the plane
+	{
+		g_sp_tessellation.Bind();
+		g_tex_normalMap.Bind( 0 );
+		g_tex_dispMap.Bind( 1 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normalMap" ), 0 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+		glBindVertexArray( VAO_plane );
+		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
+		assert( glGetError() == GL_NO_ERROR );
+		glBindVertexArray( 0 );
+	}
 
 	// Draw the outline of the plane separately
 	{
@@ -913,7 +916,7 @@ int main( int argc, char* argv[] )
 		path_vertexShader_tessellation,
 		path_fragmentShader_tessellation,
 		g_sp_tessellation,
-		path_geometryShader_outline,
+		path_geometryShader_tess,
 		path_tess_control,
 		path_tess_evaulation
 	);
