@@ -7,9 +7,8 @@
 layout( location = 0 ) in vec3 i_vertexPosition_local;
 layout( location = 2 ) in vec2 i_texCoord;
 
-out vec4 v_position;
 out vec2 v_texCoord;
-out vec3 v_normal;
+out vec4 v_position;
 
 // Entry Point
 //============

@@ -6,12 +6,7 @@
 // but must match the C calls to glVertexAttribPointer()
 layout( location = 0 ) in vec3 i_vertexPosition_local;
 
-uniform mat4 mat_model;
-uniform mat4 mat_view;
-uniform mat4 mat_projection;
-
 out vec4 v_position;
-out vec3 v_normal;
 out vec2 v_texCoord;
 
 // Output
@@ -26,7 +21,6 @@ out vec2 v_texCoord;
 
 void main()
 {
-	gl_Position = mat_projection * mat_view * mat_model * vec4(i_vertexPosition_local,1);
-	v_position = gl_Position;
+	v_position = vec4(i_vertexPosition_local,1);
 	v_texCoord = vec2(0,0);
 }

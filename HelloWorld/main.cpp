@@ -105,7 +105,6 @@ constexpr char const* path_fragmentShader_quad = "content/shaders/fragment_quad_
 constexpr char const* path_vertexShader_outline = "content/shaders/vertex_outline.shader";
 constexpr char const* path_fragmentShader_outline = "content/shaders/fragment_outline.shader";
 constexpr char const* path_geometryShader_outline = "content/shaders/geometry_outline.shader";
-constexpr char const* path_geometryShader_tess = "content/shaders/geometry_tess.shader";
 
 constexpr char const* path_tess_control = "content/shaders/tess_control.shader";
 constexpr char const* path_tess_evaulation = "content/shaders/tess_evaluation.shader";
