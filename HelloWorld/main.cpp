@@ -269,7 +269,10 @@ void LoadTexture( const char* i_name_tex, cyGLTexture2D& io_tex )
 	{
 		assert( false );
 	}
-	io_tex.SetImage<unsigned char>( data_tex.data(), 3, width_tex, height_tex );
+	io_tex.Initialize();
+	io_tex.SetWrappingMode(GL_REPEAT, GL_REPEAT);
+	io_tex.SetImage<unsigned char>( data_tex.data(), 4, width_tex, height_tex, 0 );
+	io_tex.BuildMipmaps();
 	fprintf_s( stdout, "Loaded the %s texture successfully.\n", i_name_tex );
 }
 
@@ -620,7 +623,8 @@ void UpdateLight()
 	glUniform3fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "lightPos" ), 1, &lightSource.elem[0] );
 
 	g_sp_tessellation.Bind();
-	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
+	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "worldPos_light" ), 1, &g_lightPosInWorld.elem[0] );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_light" ), 1, GL_FALSE, g_mat_light.cell );
 }
 
 void UpdateModels()
@@ -634,14 +638,6 @@ void UpdateModels()
 	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_quad.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
 	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "dis" ), 1.0f );
-#endif
-#if defined(RENDER_SKYBOX)
-	g_skyboxShaderProgram.Bind();
-	// Removed the translation from the view matrix
-	auto mat4_view = cyMatrix4f( cyMatrix3f( mat_view ) );
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat4_view.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_proj" ), 1, GL_FALSE, mat_perspective.cell );
-	assert( glGetError() == GL_NO_ERROR );
 #endif
 }
 
