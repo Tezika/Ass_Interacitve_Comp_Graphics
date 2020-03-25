@@ -7,12 +7,9 @@
 
 in vec3 fragPos;
 in vec2 texCoord;
+in vec3 lightPos;
 out vec4 o_color;
 
-// For diffuse
-uniform sampler2D tex_diff;
-// For specular
-uniform sampler2D tex_spec;
 // For normal map
 uniform sampler2D tex_normalMap;
 

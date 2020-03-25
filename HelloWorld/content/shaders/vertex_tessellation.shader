@@ -10,7 +10,8 @@ layout( location = 2 ) in vec2 i_texCoord;
 uniform mat4 mat_model;
 uniform mat4 mat_view;
 uniform mat4 mat_projection;
-uniform vec3 pos_light;
+uniform mat4 mat_light;
+uniform vec3 worldPos_light;
 
 out vec3 fragPos;
 out vec2 texCoord;
@@ -31,6 +32,7 @@ void main()
 	gl_Position = mat_projection * mat_view * mat_model * vec4(i_vertexPosition_local, 1);
 	vec4 fragPos4 = mat_view * mat_model * vec4(i_vertexPosition_local, 1);
 	fragPos = vec3(fragPos4) / fragPos4.w;
-	lig
+	vec4 lightPos4 = mat_view * mat_light * vec4(worldPos_light, 1);
+	lightPos = vec3(lightPos4)/ lightPos4.w;
 	texCoord = i_texCoord;
 }

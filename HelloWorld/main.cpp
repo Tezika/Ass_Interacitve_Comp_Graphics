@@ -856,6 +856,7 @@ int main( int argc, char* argv[] )
 
 	CompileShaders( path_vertexShader_outline, path_fragmentShader_outline, g_sp_outline, path_geometryShader_outline );
 
+	// Load the flip .png to resolve the texture upside down bug.
 	LoadTexture( "teapot_normal_flip.png", g_tex_normalMap );
 	LoadTexture( "teapot_disp_flip.png", g_tex_dispMap );
 
