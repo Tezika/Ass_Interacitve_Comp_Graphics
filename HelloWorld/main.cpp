@@ -497,7 +497,7 @@ void RenderScene( bool i_bDrawShdow = false )
 		g_sp_outline.Bind();
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_POINTS, 0, 6 );
+		glDrawArrays( GL_TRIANGLES, 0, 6);
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
