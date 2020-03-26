@@ -58,6 +58,7 @@ cyMatrix4f g_mat_light = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_quad = cyMatrix4f( 1.0f );
 
 bool bControlTheLight = false;
+bool bShowTessGrids = true;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
@@ -537,21 +538,22 @@ void RenderScene( bool i_bDrawShdow = false )
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
-
-	// Draw the outline of the plane separately
+	if (bShowTessGrids)
 	{
-		g_sp_outline.Bind();
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-		glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 1 );
-		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
+		// Draw the outline of the plane separately
+		{
+			g_sp_outline.Bind();
+			glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+			glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
+			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
+			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 1 );
+			glBindVertexArray( VAO_plane );
+			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
+			assert( glGetError() == GL_NO_ERROR );
+			glBindVertexArray( 0 );
+		}
 	}
-
 	//g_sp_shadowMesh.Bind();
 	//if (i_bDrawShdow)
 	//{
@@ -725,6 +727,13 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 		{
 			g_level_tess += 1.0f;
 
+		}
+	}
+	if (i_key == GLFW_KEY_SPACE)
+	{
+		if (i_action == GLFW_RELEASE)
+		{
+			bShowTessGrids = !bShowTessGrids;
 		}
 	}
 }
