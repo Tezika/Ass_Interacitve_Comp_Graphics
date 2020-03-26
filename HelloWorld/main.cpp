@@ -38,7 +38,8 @@ cyGLTexture2D g_tex_dispMap;
 
 cyGLSLProgram g_sp_skybox;
 cyGLSLProgram g_sp_quad;
-cyGLSLProgram g_sp_shadowPass;
+cyGLSLProgram g_sp_shadowPass_tess;
+cyGLSLProgram g_sp_shadowPass_noTess;
 cyGLSLProgram g_sp_shadowMesh;
 cyGLSLProgram g_sp_lightMesh;
 cyGLSLProgram g_sp_tessellation;
@@ -531,6 +532,7 @@ void RenderScene( bool i_bDrawShdow = false )
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
+		glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ), 1 );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
@@ -546,6 +548,7 @@ void RenderScene( bool i_bDrawShdow = false )
 			glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
 			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ), 1 );
 			glBindVertexArray( VAO_plane );
 			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 			assert( glGetError() == GL_NO_ERROR );
@@ -585,18 +588,25 @@ void GenerateShadowMap()
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	{
-		g_sp_shadowPass.Bind();
+		g_sp_shadowPass_tess.Bind();
 		//Display the plane
 		{
 			g_tex_normalMap.Bind( 0 );
 			g_tex_dispMap.Bind( 1 );
-			glUniform1i( glGetUniformLocation( g_sp_shadowPass.GetID(), "tex_normal" ), 0 );
-			glUniform1i( glGetUniformLocation( g_sp_shadowPass.GetID(), "tex_disp" ), 1 );
-			glUniform1f( glGetUniformLocation( g_sp_shadowPass.GetID(), "level_tess" ), g_level_tess );
-			glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_normal" ), 0 );
+			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_disp" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ), 1 );
+			glUniform1f( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "level_tess" ), g_level_tess );
+			glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 			glBindVertexArray( VAO_plane );
 			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 			assert( glGetError() == GL_NO_ERROR );
+			glBindVertexArray( 0 );
+		}
+		g_sp_shadowPass_noTess.Bind();
+		{
+			glBindVertexArray( VAO_plane );
+			glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
 			glBindVertexArray( 0 );
 		}
 	}
@@ -674,7 +684,7 @@ void UpdateLight()
 	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "worldPos_light" ), 1, &g_lightPosInWorld.elem[0] );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_light" ), 1, GL_FALSE, g_mat_light.cell );
 
-	g_sp_shadowPass.Bind();
+	g_sp_shadowPass_tess.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
 }
 
@@ -949,10 +959,16 @@ int main( int argc, char* argv[] )
 	CompileShaders(
 		path_vertexShader_tessellation,
 		path_fragmentShader_shadowPass,
-		g_sp_shadowPass,
+		g_sp_shadowPass_tess,
 		"",
 		path_tess_control,
 		path_tess_evaulation
+	);
+
+	CompileShaders(
+		path_vertexShader_shadowPass,
+		path_fragmentShader_shadowPass,
+		g_sp_shadowPass_noTess
 	);
 
 	// Load the flip .png to resolve the texture upside down bug.
@@ -987,7 +1003,7 @@ int main( int argc, char* argv[] )
 		g_tex_dispMap.Delete();
 		g_sp_lightMesh.Delete();
 		g_sp_quad.Delete();
-		g_sp_shadowPass.Delete();
+		g_sp_shadowPass_tess.Delete();
 
 		if (glGetError() != GL_NO_ERROR)
 		{
