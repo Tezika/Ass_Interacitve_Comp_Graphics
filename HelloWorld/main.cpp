@@ -103,7 +103,6 @@ constexpr char const* path_fragmentShader_shadowPass = "content/shaders/fragment
 constexpr char const* path_vertexShader_quad = "content/shaders/vertex_quad_texture.shader";
 constexpr char const* path_fragmentShader_quad = "content/shaders/fragment_quad_texture.shader";
 
-constexpr char const* path_vertexShader_outline = "content/shaders/vertex_outline.shader";
 constexpr char const* path_fragmentShader_outline = "content/shaders/fragment_outline.shader";
 constexpr char const* path_geometryShader_outline = "content/shaders/geometry_outline.shader";
 
@@ -544,7 +543,9 @@ void RenderScene( bool i_bDrawShdow = false )
 		g_sp_outline.Bind();
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 0 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 1 );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -929,7 +930,7 @@ int main( int argc, char* argv[] )
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_sp_tessellation );
 	CompileShaders(
-		path_vertexShader_outline,
+		path_vertexShader_tessellation,
 		path_fragmentShader_outline,
 		g_sp_outline,
 		path_geometryShader_outline,
