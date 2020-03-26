@@ -526,17 +526,20 @@ void RenderScene( bool i_bDrawShdow = false )
 
 	//Display the plane
 	{
+
 		g_sp_tessellation.Bind();
 		g_tex_normalMap.Bind( 0 );
 		g_tex_dispMap.Bind( 1 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
-		glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ), 1 );
+		assert( glGetError() == GL_NO_ERROR );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 1 );
+		assert( glGetError() == GL_NO_ERROR );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
+
 		glBindVertexArray( 0 );
 	}
 	if (bShowTessGrids)
@@ -546,9 +549,9 @@ void RenderScene( bool i_bDrawShdow = false )
 			g_sp_outline.Bind();
 			glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 			glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
-			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
-			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
-			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_normal" ), 0 );
+			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_disp" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "displacement" ), 1 );
 			glBindVertexArray( VAO_plane );
 			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 			assert( glGetError() == GL_NO_ERROR );
@@ -944,7 +947,7 @@ int main( int argc, char* argv[] )
 		path_tess_control,
 		path_tess_evaulation
 	);
-
+	assert( glGetError() == GL_NO_ERROR );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_sp_tessellation );
 	CompileShaders(
