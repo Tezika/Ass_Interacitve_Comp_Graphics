@@ -21,7 +21,6 @@ uniform sampler2D tex_normal;
 
 void main()
 {
-
 	// calculate normal based on the normal map
 	// obtain normal from normal map in range [0,1]
     vec3 normal = texture(tex_normal, texCoord).rgb;

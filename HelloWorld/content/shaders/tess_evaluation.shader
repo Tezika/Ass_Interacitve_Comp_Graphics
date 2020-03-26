@@ -25,7 +25,7 @@ void main(void)
 {
     vec4 te_position = (gl_TessCoord.x * tc_position[0] + gl_TessCoord.y*tc_position[1] + gl_TessCoord.z*tc_position[2]);
     texCoord = (gl_TessCoord.x * tc_texCoord[0] + gl_TessCoord.y*tc_texCoord[1] + gl_TessCoord.z*tc_texCoord[2]);
-
+    
     if(displacement == 1)
     {
         // calculate normal based on the normal map
@@ -38,12 +38,12 @@ void main(void)
         vec3 dispData = texture(tex_disp, texCoord).rgb;
         float disp = 2 * (dispData.x + dispData.y + dispData.z);
         te_position = vec4(te_position.xyz + norm * disp, 1);
-
-	    vec4 fragPos4 = mat_view * mat_model * te_position;
-	    fragPos = vec3(fragPos4)/fragPos4.w;
-	    vec4 lightPos4 = mat_view * mat_light * vec4(worldPos_light, 1);
-	    lightPos = vec3(lightPos4)/lightPos4.w;
     }
+
+    vec4 fragPos4 = mat_view * mat_model * te_position;
+	fragPos = vec3(fragPos4)/fragPos4.w;
+	vec4 lightPos4 = mat_view * mat_light * vec4(worldPos_light, 1);
+	lightPos = vec3(lightPos4)/lightPos4.w;
     fragPosInLightView = mat_lightSpaceTransformation * mat_model * te_position; 
     gl_Position = mat_projection * mat_view * mat_model * te_position;
 }

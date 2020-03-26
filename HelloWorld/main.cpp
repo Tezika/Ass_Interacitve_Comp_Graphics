@@ -60,6 +60,7 @@ cyMatrix4f g_mat_quad = cyMatrix4f( 1.0f );
 
 bool bControlTheLight = false;
 bool bShowTessGrids = true;
+int g_displacement = 0;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
@@ -524,17 +525,19 @@ void RenderScene( bool i_bDrawShdow = false )
 		glBindVertexArray( 0 );
 	}
 	g_tex_normalMap.Bind( 0 );
-	g_tex_dispMap.Bind( 1 );
+	if (g_displacement)
+	{
+		g_tex_dispMap.Bind( 1 );
+	}
 	//Display the plane
 	{
 
 		g_sp_tessellation.Bind();
-
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
 		assert( glGetError() == GL_NO_ERROR );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 1 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), g_displacement );
 		assert( glGetError() == GL_NO_ERROR );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
@@ -547,7 +550,7 @@ void RenderScene( bool i_bDrawShdow = false )
 		{
 			g_sp_outline.Bind();
 			glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "displacement" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "displacement" ), g_displacement );
 			glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_normal" ), 0 );
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_disp" ), 1 );
@@ -557,33 +560,6 @@ void RenderScene( bool i_bDrawShdow = false )
 			glBindVertexArray( 0 );
 		}
 	}
-	//g_sp_shadowMesh.Bind();
-	//if (i_bDrawShdow)
-	//{
-	//	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap" ), 0 );
-	//}
-
-	//glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 0 );
-	//// Draw the plane 
-	//{
-	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-	//	if (i_bDrawShdow)
-	//	{
-	//		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 1 );
-	//	}
-	//	glBindVertexArray( VAO_plane );
-	//	glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-	//	assert( glGetError() == GL_NO_ERROR );
-	//	glBindVertexArray( 0 );
-	//}
-	//// Draw the teapot
-	//{
-	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
-	//	glBindVertexArray( VAO );
-	//	glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-	//	assert( glGetError() == GL_NO_ERROR );
-	//	glBindVertexArray( 0 );
-	//}
 }
 
 void GenerateShadowMap()
@@ -597,7 +573,7 @@ void GenerateShadowMap()
 			g_tex_dispMap.Bind( 1 );
 			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_normal" ), 0 );
 			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_disp" ), 1 );
-			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ),1 );
 			glUniform1f( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "level_tess" ), g_level_tess );
 			glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 			glBindVertexArray( VAO_plane );
@@ -900,9 +876,17 @@ int main( int argc, char* argv[] )
 {
 	if (argc < 2)
 	{
-		fprintf( stderr, "Please enter the .obj file name as the argument.\n" );
+		fprintf( stderr, "Please enter the normal and disply mapping file name as the argument.\n" );
 		system( "pause" );
 		return -1;
+	}
+	if (argc < 3)
+	{
+		g_displacement = 0;
+	}
+	else
+	{
+		g_displacement = 1;
 	}
 	GLFWwindow* pWindow;
 	/* Initialize the library */
@@ -963,25 +947,12 @@ int main( int argc, char* argv[] )
 	);
 	assert( glGetError() == GL_NO_ERROR );
 
-	//CompileShaders(
-	//	path_vertexShader_tessellation,
-	//	path_fragmentShader_shadowPass,
-	//	g_sp_shadowPass_tess,
-	//	"",
-	//	path_tess_control,
-	//	path_tess_evaulation
-	//);
-
-	//CompileShaders(
-	//	path_vertexShader_shadowPass,
-	//	path_fragmentShader_shadowPass,
-	//	g_sp_shadowPass_noTess
-	//);
-
 	// Load the flip .png to resolve the texture upside down bug.
-	LoadTexture( "teapot_normal_flip.png", g_tex_normalMap );
-	LoadTexture( "teapot_disp_flip.png", g_tex_dispMap );
-
+	LoadTexture( argv[1], g_tex_normalMap );
+	if (g_displacement)
+	{
+		LoadTexture( argv[2], g_tex_dispMap );
+	}
 	InitializeView();
 	InitializeDepthMap( g_tex_renderDepth );
 
