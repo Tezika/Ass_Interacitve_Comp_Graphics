@@ -1,6 +1,5 @@
 #version 430 core
-
-layout (quads, equal_spacing) in;
+layout (triangles, equal_spacing, cw) in;
 
 in vec4 tc_position[];
 in vec2 tc_texCoord[];
@@ -24,12 +23,8 @@ uniform int displacement = 0;
 
 void main(void)
 {
-    vec4 p1 = mix(tc_position[0], tc_position[1], gl_TessCoord.x);
-    vec4 p2 = mix(tc_position[2], tc_position[3], gl_TessCoord.x);
-    vec4 te_position = mix(p1, p2, gl_TessCoord.y);
-    vec2 tc1 = mix(tc_texCoord[0], tc_texCoord[1], gl_TessCoord.x);
-    vec2 tc2 = mix(tc_texCoord[2], tc_texCoord[3], gl_TessCoord.x);
-    texCoord = mix(tc1, tc2, gl_TessCoord.y);
+    vec4 te_position = (gl_TessCoord.x * tc_position[0] + gl_TessCoord.y*tc_position[1] + gl_TessCoord.z*tc_position[2]);
+    texCoord = (gl_TessCoord.x * tc_texCoord[0] + gl_TessCoord.y*tc_texCoord[1] + gl_TessCoord.z*tc_texCoord[2]);
 
     if(displacement == 1)
     {

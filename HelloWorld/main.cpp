@@ -154,7 +154,7 @@ namespace
 
 	cyMatrix4f GetLookAtMatrix( const cyVec3f& i_pos, const cyVec3f& i_target, const cyVec3f& i_worldUp )
 	{
-		auto dir = (i_pos - i_target).GetNormalized();
+		auto dir = ( i_pos - i_target ).GetNormalized();
 		auto right = i_worldUp.Cross( dir ).GetNormalized();
 		auto up = dir.Cross( right ).GetNormalized();
 
@@ -403,20 +403,20 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 		glGenVertexArrays( 1, &i_VAO );
 		glBindVertexArray( i_VAO );
 		assert( glGetError() == GL_NO_ERROR );
-		const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
-		const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
-		const auto sizeOfTexCoord = static_cast<GLsizei>(texCoords.size() * sizeof( cyVec2f ));
+		const auto sizeOfVertices = static_cast<GLsizei>( vertices.size() * sizeof( cyVec3f ) );
+		const auto sizeOfNormals = static_cast<GLsizei>( vertexNormals.size() * sizeof( cyVec3f ) );
+		const auto sizeOfTexCoord = static_cast<GLsizei>( texCoords.size() * sizeof( cyVec2f ) );
 		// For vertex data buffer
 		glGenBuffers( 1, &i_VBO );
 		glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
 		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals + sizeOfTexCoord, NULL, GL_STATIC_DRAW );
-		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
-		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
-		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, sizeOfTexCoord, reinterpret_cast<void*>(texCoords.data()) );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>( vertices.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>( vertexNormals.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, sizeOfTexCoord, reinterpret_cast<void*>( texCoords.data() ) );
 
-		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
-		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
-		glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec2f )), (const GLvoid*)(sizeOfVertices + sizeOfNormals) );
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( 0 ) );
+		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( sizeOfVertices ) );
+		glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec2f ) ), (const GLvoid*)( sizeOfVertices + sizeOfNormals ) );
 
 		glEnableVertexAttribArray( 0 );
 		glEnableVertexAttribArray( 1 );
@@ -451,17 +451,17 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 		glGenVertexArrays( 1, &i_VAO );
 		glBindVertexArray( i_VAO );
 		assert( glGetError() == GL_NO_ERROR );
-		const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
-		const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
+		const auto sizeOfVertices = static_cast<GLsizei>( vertices.size() * sizeof( cyVec3f ) );
+		const auto sizeOfNormals = static_cast<GLsizei>( vertexNormals.size() * sizeof( cyVec3f ) );
 		// For vertex data buffer
 		glGenBuffers( 1, &i_VBO );
 		glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
 		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, NULL, GL_STATIC_DRAW );
-		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
-		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>( vertices.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>( vertexNormals.data() ) );
 
-		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
-		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( 0 ) );
+		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( sizeOfVertices ) );
 
 		glEnableVertexAttribArray( 0 );
 		glEnableVertexAttribArray( 1 );
@@ -482,14 +482,14 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 	glGenBuffers( 1, &i_VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
 	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)( 0 ) );
 	glEnableVertexAttribArray( 0 );
-	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
+	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)( 3 * sizeof( GLfloat ) ) );
 	glEnableVertexAttribArray( 1 );
 
 	glGenBuffers( 1, &i_EBO );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, i_EBO );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof( unsigned int ) * count_quad_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>( sizeof( unsigned int ) * count_quad_indices ), &g_quad_indices_data[0], GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
 
 	glBindVertexArray( 0 );
@@ -498,14 +498,14 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 
 void InitializeView()
 {
-	g_target_camera = (g_planeMesh.GetBoundMax() + g_planeMesh.GetBoundMin()) / 2;
-	g_target_light = (g_planeMesh.GetBoundMax() + g_planeMesh.GetBoundMin()) / 2;
+	g_target_camera = ( g_planeMesh.GetBoundMax() + g_planeMesh.GetBoundMin() ) / 2;
+	g_target_light = ( g_planeMesh.GetBoundMax() + g_planeMesh.GetBoundMin() ) / 2;
 
-	g_dir_targetToCamera = (g_cameraPosInWorld - g_target_camera).GetNormalized();
-	g_dir_targetTolight = (g_lightPosInWorld - g_target_light).GetNormalized();
+	g_dir_targetToCamera = ( g_cameraPosInWorld - g_target_camera ).GetNormalized();
+	g_dir_targetTolight = ( g_lightPosInWorld - g_target_light ).GetNormalized();
 
-	g_dis_cameraToTarget = (g_cameraPosInWorld - g_target_camera).Length();
-	g_dis_lightToTarget = (g_lightPosInWorld - g_target_light).Length();
+	g_dis_cameraToTarget = ( g_cameraPosInWorld - g_target_camera ).Length();
+	g_dis_lightToTarget = ( g_lightPosInWorld - g_target_light ).Length();
 }
 
 #pragma endregion Initialization
@@ -523,13 +523,13 @@ void RenderScene( bool i_bDrawShdow = false )
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
-
+	g_tex_normalMap.Bind( 0 );
+	g_tex_dispMap.Bind( 1 );
 	//Display the plane
 	{
 
 		g_sp_tessellation.Bind();
-		g_tex_normalMap.Bind( 0 );
-		g_tex_dispMap.Bind( 1 );
+
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
@@ -539,7 +539,6 @@ void RenderScene( bool i_bDrawShdow = false )
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
-
 		glBindVertexArray( 0 );
 	}
 	if (bShowTessGrids)
@@ -548,10 +547,10 @@ void RenderScene( bool i_bDrawShdow = false )
 		{
 			g_sp_outline.Bind();
 			glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "displacement" ), 1 );
 			glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_normal" ), 0 );
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_disp" ), 1 );
-			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "displacement" ), 1 );
 			glBindVertexArray( VAO_plane );
 			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 			assert( glGetError() == GL_NO_ERROR );
@@ -687,8 +686,8 @@ void UpdateLight()
 	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "worldPos_light" ), 1, &g_lightPosInWorld.elem[0] );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_light" ), 1, GL_FALSE, g_mat_light.cell );
 
-	g_sp_shadowPass_tess.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+	//g_sp_shadowPass_tess.Bind();
+	//glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
 }
 
 void UpdateModels()
@@ -939,6 +938,7 @@ int main( int argc, char* argv[] )
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
 	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
 
+	// tessellation shader
 	CompileShaders(
 		path_vertexShader_tessellation,
 		path_fragmentShader_tessellation,
@@ -947,9 +947,12 @@ int main( int argc, char* argv[] )
 		path_tess_control,
 		path_tess_evaulation
 	);
+
 	assert( glGetError() == GL_NO_ERROR );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_sp_tessellation );
+
+	// outline shader
 	CompileShaders(
 		path_vertexShader_tessellation,
 		path_fragmentShader_outline,
@@ -958,21 +961,22 @@ int main( int argc, char* argv[] )
 		path_tess_control,
 		path_tess_evaulation
 	);
+	assert( glGetError() == GL_NO_ERROR );
 
-	CompileShaders(
-		path_vertexShader_tessellation,
-		path_fragmentShader_shadowPass,
-		g_sp_shadowPass_tess,
-		"",
-		path_tess_control,
-		path_tess_evaulation
-	);
+	//CompileShaders(
+	//	path_vertexShader_tessellation,
+	//	path_fragmentShader_shadowPass,
+	//	g_sp_shadowPass_tess,
+	//	"",
+	//	path_tess_control,
+	//	path_tess_evaulation
+	//);
 
-	CompileShaders(
-		path_vertexShader_shadowPass,
-		path_fragmentShader_shadowPass,
-		g_sp_shadowPass_noTess
-	);
+	//CompileShaders(
+	//	path_vertexShader_shadowPass,
+	//	path_fragmentShader_shadowPass,
+	//	g_sp_shadowPass_noTess
+	//);
 
 	// Load the flip .png to resolve the texture upside down bug.
 	LoadTexture( "teapot_normal_flip.png", g_tex_normalMap );
