@@ -530,7 +530,6 @@ void RenderScene( bool i_bDrawShdow = false )
 		g_tex_dispMap.Bind( 1 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 1 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
@@ -547,7 +546,6 @@ void RenderScene( bool i_bDrawShdow = false )
 			glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
 			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
-			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 1 );
 			glBindVertexArray( VAO_plane );
 			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 			assert( glGetError() == GL_NO_ERROR );
@@ -586,36 +584,34 @@ void RenderScene( bool i_bDrawShdow = false )
 void GenerateShadowMap()
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	g_sp_shadowPass.Bind();
-	// Draw the teapot
 	{
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
-		glBindVertexArray( VAO );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
-	}
-	// Draw the plane 
-	{
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
-		glBindVertexArray( 0 );
+		g_sp_shadowPass.Bind();
+		//Display the plane
+		{
+			g_tex_normalMap.Bind( 0 );
+			g_tex_dispMap.Bind( 1 );
+			glUniform1i( glGetUniformLocation( g_sp_shadowPass.GetID(), "tex_normal" ), 0 );
+			glUniform1i( glGetUniformLocation( g_sp_shadowPass.GetID(), "tex_disp" ), 1 );
+			glUniform1f( glGetUniformLocation( g_sp_shadowPass.GetID(), "level_tess" ), g_level_tess );
+			glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+			glBindVertexArray( VAO_plane );
+			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
+			assert( glGetError() == GL_NO_ERROR );
+			glBindVertexArray( 0 );
+		}
 	}
 }
 
 void Display()
 {
-
-	// Render the scene to the shadow map from the light perspective
-	//{
-	//	g_tex_renderDepth.Bind();
-	//	glCullFace( GL_FRONT );
-	//	GenerateShadowMap();
-	//	glCullFace( GL_BACK );
-	//	g_tex_renderDepth.Unbind();
-	//}
+	//Render the scene to the shadow map from the light perspective
+	{
+		g_tex_renderDepth.Bind();
+		glCullFace( GL_FRONT );
+		GenerateShadowMap();
+		glCullFace( GL_BACK );
+		g_tex_renderDepth.Unbind();
+	}
 
 	{
 		RenderScene( true );
@@ -677,6 +673,9 @@ void UpdateLight()
 	g_sp_tessellation.Bind();
 	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "worldPos_light" ), 1, &g_lightPosInWorld.elem[0] );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_light" ), 1, GL_FALSE, g_mat_light.cell );
+
+	g_sp_shadowPass.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
 }
 
 void UpdateModels()
@@ -947,11 +946,21 @@ int main( int argc, char* argv[] )
 		path_tess_evaulation
 	);
 
+	CompileShaders(
+		path_vertexShader_tessellation,
+		path_fragmentShader_shadowPass,
+		g_sp_shadowPass,
+		"",
+		path_tess_control,
+		path_tess_evaulation
+	);
+
 	// Load the flip .png to resolve the texture upside down bug.
 	LoadTexture( "teapot_normal_flip.png", g_tex_normalMap );
 	LoadTexture( "teapot_disp_flip.png", g_tex_dispMap );
 
 	InitializeView();
+	InitializeDepthMap( g_tex_renderDepth );
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
@@ -978,6 +987,7 @@ int main( int argc, char* argv[] )
 		g_tex_dispMap.Delete();
 		g_sp_lightMesh.Delete();
 		g_sp_quad.Delete();
+		g_sp_shadowPass.Delete();
 
 		if (glGetError() != GL_NO_ERROR)
 		{
