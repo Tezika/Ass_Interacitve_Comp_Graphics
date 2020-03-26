@@ -61,7 +61,8 @@ bool bControlTheLight = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
-float g_level_tess = 1.0f;
+float g_level_tess = 1;
+float g_tess_speed = 100;
 
 float camera_moveSpeed_perframe = 0.05f;
 
@@ -529,6 +530,7 @@ void RenderScene( bool i_bDrawShdow = false )
 		g_tex_dispMap.Bind( 1 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 1 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
@@ -542,6 +544,7 @@ void RenderScene( bool i_bDrawShdow = false )
 		g_sp_outline.Bind();
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), 0 );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
