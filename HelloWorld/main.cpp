@@ -618,13 +618,13 @@ void GenerateShadowMap()
 void Display()
 {
 	//Render the scene to the shadow map from the light perspective
-	{
-		g_tex_renderDepth.Bind();
-		glCullFace( GL_FRONT );
-		GenerateShadowMap();
-		glCullFace( GL_BACK );
-		g_tex_renderDepth.Unbind();
-	}
+	//{
+	//	g_tex_renderDepth.Bind();
+	//	glCullFace( GL_FRONT );
+	//	GenerateShadowMap();
+	//	glCullFace( GL_BACK );
+	//	g_tex_renderDepth.Unbind();
+	//}
 
 	{
 		RenderScene( true );
