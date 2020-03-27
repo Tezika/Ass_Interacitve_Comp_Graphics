@@ -682,6 +682,7 @@ void UpdateModels()
 
 void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
 {
+
 	assert( i_pWindow );
 	if (i_key == GLFW_KEY_F6 && i_action == GLFW_PRESS)
 	{
