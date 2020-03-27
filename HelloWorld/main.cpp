@@ -384,6 +384,10 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 				vertices.push_back( i_mesh.V( triFace.v[j] ) );
 			}
 		}
+		//for (int i = 0; i < i_mesh.NV(); i++)
+		//{
+		//	vertices.push_back( i_mesh.V( i ) );
+		//}
 		for (int i = 0; i < i_mesh.NF(); i++)
 		{
 			auto curNormalFace = i_mesh.FN( i );
@@ -401,6 +405,10 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 				texCoords.push_back( i_mesh.VT( curTexFace.v[j] ).XY() );
 			}
 		}
+		//for (int i = 0; i < i_mesh.NVT(); i++)
+		//{
+		//	texCoords.push_back( i_mesh.VT( i ).XY() );
+		//}
 		glGenVertexArrays( 1, &i_VAO );
 		glBindVertexArray( i_VAO );
 		assert( glGetError() == GL_NO_ERROR );
@@ -474,27 +482,104 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 	}
 }
 
-void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
+void InitializeSimpleQuad( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO, GLuint& i_VBO )
 {
-	// Generate the render to texture's vbo and vao
-	glGenVertexArrays( 1, &i_VAO );
-	glBindVertexArray( i_VAO );
+	std::string path_objFile( path_meshResource );
+	path_objFile += i_objFileName;
+	if (!i_mesh.LoadFromFileObj( path_objFile.c_str(), true ))
+	{
+		fprintf( stderr, "Failed to load the %s.\n", i_objFileName );
+		assert( false );
+	}
+	else
+	{
+		fprintf( stdout, "Loaded the %s successfully.\n", i_objFileName );
+	}
+	if (!i_mesh.IsBoundBoxReady())
+	{
+		i_mesh.ComputeBoundingBox();
+	}
+	i_mesh.ComputeNormals();
+	if (i_mesh.NVT() > 0)
+	{
+		std::vector<cyVec3f> vertices;
+		std::vector<cyVec3f> vertexNormals;
+		for (int i = 0; i < i_mesh.NV(); i++)
+		{
+			vertices.push_back( i_mesh.V( i ) );
+		}
+		for (int i = 0; i < i_mesh.NVN(); i++)
+		{
+			vertexNormals.push_back( i_mesh.VN( i ) );
+		}
+		std::vector<cyVec2f> texCoords;
+		for (int i = 0; i < i_mesh.NVT(); i++)
+		{
+			texCoords.push_back( i_mesh.VT( i ).XY() );
+		}
+		glGenVertexArrays( 1, &i_VAO );
+		glBindVertexArray( i_VAO );
+		assert( glGetError() == GL_NO_ERROR );
+		const auto sizeOfVertices = static_cast<GLsizei>( vertices.size() * sizeof( cyVec3f ) );
+		const auto sizeOfNormals = static_cast<GLsizei>( vertexNormals.size() * sizeof( cyVec3f ) );
+		const auto sizeOfTexCoord = static_cast<GLsizei>( texCoords.size() * sizeof( cyVec2f ) );
+		// For vertex data buffer
+		glGenBuffers( 1, &i_VBO );
+		glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
+		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals + sizeOfTexCoord, NULL, GL_STATIC_DRAW );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>( vertices.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>( vertexNormals.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, sizeOfTexCoord, reinterpret_cast<void*>( texCoords.data() ) );
 
-	glGenBuffers( 1, &i_VBO );
-	glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
-	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)( 0 ) );
-	glEnableVertexAttribArray( 0 );
-	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)( 3 * sizeof( GLfloat ) ) );
-	glEnableVertexAttribArray( 1 );
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( 0 ) );
+		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( sizeOfVertices ) );
+		glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec2f ) ), (const GLvoid*)( sizeOfVertices + sizeOfNormals ) );
 
-	glGenBuffers( 1, &i_EBO );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, i_EBO );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>( sizeof( unsigned int ) * count_quad_indices ), &g_quad_indices_data[0], GL_STATIC_DRAW );
-	assert( glGetError() == GL_NO_ERROR );
+		glEnableVertexAttribArray( 0 );
+		glEnableVertexAttribArray( 1 );
+		glEnableVertexAttribArray( 2 );
 
-	glBindVertexArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		assert( glGetError() == GL_NO_ERROR );
+
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		glBindVertexArray( 0 );
+	}
+	else
+	{
+		std::vector<cyVec3f> vertices;
+		std::vector<cyVec3f> vertexNormals;
+		for (int i = 0; i < i_mesh.NV(); i++)
+		{
+			vertices.push_back( i_mesh.V( i ) );
+		}
+		for (int i = 0; i < i_mesh.NVN(); i++)
+		{
+			vertexNormals.push_back( i_mesh.VN( i ) );
+		}
+		glGenVertexArrays( 1, &i_VAO );
+		glBindVertexArray( i_VAO );
+		assert( glGetError() == GL_NO_ERROR );
+		const auto sizeOfVertices = static_cast<GLsizei>( vertices.size() * sizeof( cyVec3f ) );
+		const auto sizeOfNormals = static_cast<GLsizei>( vertexNormals.size() * sizeof( cyVec3f ) );
+		// For vertex data buffer
+		glGenBuffers( 1, &i_VBO );
+		glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
+		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, NULL, GL_STATIC_DRAW );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>( vertices.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>( vertexNormals.data() ) );
+
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( 0 ) );
+		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( sizeOfVertices ) );
+
+		glEnableVertexAttribArray( 0 );
+		glEnableVertexAttribArray( 1 );
+
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		glBindVertexArray( 0 );
+		assert( glGetError() == GL_NO_ERROR );
+	}
 }
 
 void InitializeView()
@@ -531,7 +616,6 @@ void RenderScene( bool i_bDrawShdow = false )
 	}
 	//Display the plane
 	{
-
 		g_sp_tessellation.Bind();
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
@@ -541,7 +625,8 @@ void RenderScene( bool i_bDrawShdow = false )
 		assert( glGetError() == GL_NO_ERROR );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
+		glPatchParameteri( GL_PATCH_VERTICES, 4 );
+		glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );
 		glBindVertexArray( 0 );
 	}
 	if (bShowTessGrids)
@@ -555,7 +640,8 @@ void RenderScene( bool i_bDrawShdow = false )
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_normal" ), 0 );
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_disp" ), 1 );
 			glBindVertexArray( VAO_plane );
-			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
+			glPatchParameteri( GL_PATCH_VERTICES, 4 );
+			glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );
 			assert( glGetError() == GL_NO_ERROR );
 			glBindVertexArray( 0 );
 		}
@@ -933,7 +1019,7 @@ int main( int argc, char* argv[] )
 	);
 
 	assert( glGetError() == GL_NO_ERROR );
-	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
+	InitializeSimpleQuad( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_planeMesh, g_sp_tessellation );
 
 	// outline shader
