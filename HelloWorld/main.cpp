@@ -609,18 +609,17 @@ void RenderScene( bool i_bDrawShdow = false )
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
-	g_tex_normalMap.Bind( 0 );
+	g_tex_normalMap.Bind( 1 );
 	if (g_displacement)
 	{
-		g_tex_dispMap.Bind( 1 );
+		g_tex_dispMap.Bind( 2 );
 	}
-	g_tex_renderDepth.BindTexture();
 	//Display the plane
 	{
 		g_sp_tessellation.Bind();
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_shadowMap" ), 2 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 1 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 2 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_shadowMap" ), 0 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), g_displacement );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "shadowing" ), 1 );
@@ -638,8 +637,8 @@ void RenderScene( bool i_bDrawShdow = false )
 			glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "displacement" ), g_displacement );
 			glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
-			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_normal" ), 0 );
-			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_disp" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_normal" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_disp" ), 2 );
 			glBindVertexArray( VAO_plane );
 			glPatchParameteri( GL_PATCH_VERTICES, 4 );
 			glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );

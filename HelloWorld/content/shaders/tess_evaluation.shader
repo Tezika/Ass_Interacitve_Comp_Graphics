@@ -43,7 +43,7 @@ void main(void)
 
         // Generate new vertices based on displacement map.
         vec3 dispData = texture(tex_disp, texCoord).rgb;
-        float disp = 3 * (dispData.x + dispData.y + dispData.z);
+        float disp = 2 * (dispData.x + dispData.y + dispData.z);
         te_position = vec4(te_position.xyz + norm * disp, 1);
     }
 
