@@ -64,12 +64,12 @@ int g_displacement = 0;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
-float g_level_tess = 1;
+float g_level_tess = 1000;
 float g_tess_speed = 100;
 
 float camera_moveSpeed_perframe = 0.5f;
 
-cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 30.0f, 40.0f );
+cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 30.0f, 120.0f );
 cyVec3f g_cameraPosInWorld = cyVec3f( 0.0, 0.0, 100.0f );
 
 float g_moveSpeed = 20;
@@ -651,27 +651,26 @@ void RenderScene( bool i_bDrawShdow = false )
 void GenerateShadowMap()
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+
 	{
 		g_sp_shadowPass_tess.Bind();
-		//Display the plane
-		{
-			g_sp_tessellation.Bind();
-			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
-			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
-			glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
-			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), g_displacement );
-			assert( glGetError() == GL_NO_ERROR );
-			glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-			glBindVertexArray( VAO_plane );
-			glPatchParameteri( GL_PATCH_VERTICES, 4 );
-			glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );
-			glBindVertexArray( 0 );
-		}
+		glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_normal" ), 1 );
+		glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_disp" ), 2 );
+		glUniform1f( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "level_tess" ), g_level_tess );
+		glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ), g_displacement );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
+		glBindVertexArray( VAO_plane );
+		glPatchParameteri( GL_PATCH_VERTICES, 4 );
+		glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );
+		glBindVertexArray( 0 );
 	}
 }
 
 void Display()
 {
+	g_tex_normalMap.Bind( 1 );
+	g_tex_dispMap.Bind( 2 );
 	// Render the scene to the shadow map from the light perspective
 	{
 		g_tex_renderDepth.Bind();
@@ -680,7 +679,6 @@ void Display()
 		glCullFace( GL_BACK );
 		g_tex_renderDepth.Unbind();
 	}
-
 	{
 		RenderScene( true );
 	}
@@ -730,7 +728,7 @@ void UpdateLight()
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	float near_plane = 1.0f;
 	float far_plane = 200.0f;
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), width_shadow / height_shadow, near_plane, far_plane );
+	mat_perspective.SetPerspective( glm::radians( 20.0f ), width_shadow / height_shadow, near_plane, far_plane );
 
 	auto mat_lightSpace = mat_perspective * mat_lightSpace_view;
 
