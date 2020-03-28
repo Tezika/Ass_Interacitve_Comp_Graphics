@@ -8,6 +8,7 @@
 in vec3 fragPos;
 in vec3 lightPos;
 in vec2 texCoord;
+in vec4 fragPosInLightSpace;
 out vec4 o_color;
 
 uniform vec3 diffuseColor;
@@ -15,9 +16,20 @@ uniform vec3 ambientColor;
 uniform vec3 specularColor;
 
 uniform sampler2D tex_normal;
+uniform sampler2D tex_shadowMap;
+uniform int shadowing;
 
 // Entry Point
 //============
+float calculateShadow(vec4 i_fragPosInLightSpace, float i_bias)
+{
+	vec3 projCoord = i_fragPosInLightSpace.xyz / i_fragPosInLightSpace.w;
+	projCoord = projCoord * 0.5 + 0.5;
+	float closestDepth  = texture(tex_shadowMap, projCoord.xy).z;
+	float currentDepth = projCoord.z;
+	float shadow = currentDepth - i_bias > closestDepth ? 1.0 : 0.0;
+	return shadow;
+}
 
 void main()
 {
@@ -37,5 +49,7 @@ void main()
 	vec3 ambient = ambientColor;
 	vec3 diffuse =  diffuseColor * diff;
 	vec3 specular = specularColor * spec;
-	o_color = vec4( ambient + diffuse + specular, 1);
+	float shadow = shadowing == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, 0.001);
+	vec3 lighting = ambient + (1-shadow) *(diffuse + specular);
+	o_color = vec4(lighting, 1);
 }

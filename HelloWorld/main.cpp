@@ -614,15 +614,16 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		g_tex_dispMap.Bind( 1 );
 	}
+	g_tex_renderDepth.BindTexture();
 	//Display the plane
 	{
 		g_sp_tessellation.Bind();
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_shadowMap" ), 2 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
-		assert( glGetError() == GL_NO_ERROR );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), g_displacement );
-		assert( glGetError() == GL_NO_ERROR );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "shadowing" ), 1 );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
 		glPatchParameteri( GL_PATCH_VERTICES, 4 );
@@ -655,22 +656,16 @@ void GenerateShadowMap()
 		g_sp_shadowPass_tess.Bind();
 		//Display the plane
 		{
-			g_tex_normalMap.Bind( 0 );
-			g_tex_dispMap.Bind( 1 );
-			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_normal" ), 0 );
-			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_disp" ), 1 );
-			glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "displacement" ),1 );
-			glUniform1f( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "level_tess" ), g_level_tess );
-			glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-			glBindVertexArray( VAO_plane );
-			glDrawArrays( GL_PATCHES, 0, 3 * g_planeMesh.NF() );
+			g_sp_tessellation.Bind();
+			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 0 );
+			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 1 );
+			glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
+			glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), g_displacement );
 			assert( glGetError() == GL_NO_ERROR );
-			glBindVertexArray( 0 );
-		}
-		g_sp_shadowPass_noTess.Bind();
-		{
+			glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 			glBindVertexArray( VAO_plane );
-			glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
+			glPatchParameteri( GL_PATCH_VERTICES, 4 );
+			glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );
 			glBindVertexArray( 0 );
 		}
 	}
@@ -678,14 +673,14 @@ void GenerateShadowMap()
 
 void Display()
 {
-	//Render the scene to the shadow map from the light perspective
-	//{
-	//	g_tex_renderDepth.Bind();
-	//	glCullFace( GL_FRONT );
-	//	GenerateShadowMap();
-	//	glCullFace( GL_BACK );
-	//	g_tex_renderDepth.Unbind();
-	//}
+	// Render the scene to the shadow map from the light perspective
+	{
+		g_tex_renderDepth.Bind();
+		glCullFace( GL_FRONT );
+		GenerateShadowMap();
+		glCullFace( GL_BACK );
+		g_tex_renderDepth.Unbind();
+	}
 
 	{
 		RenderScene( true );
@@ -1028,6 +1023,15 @@ int main( int argc, char* argv[] )
 		path_fragmentShader_outline,
 		g_sp_outline,
 		path_geometryShader_outline,
+		path_tess_control,
+		path_tess_evaulation
+	);
+
+	CompileShaders(
+		path_vertexShader_tessellation,
+		path_fragmentShader_shadowPass,
+		g_sp_shadowPass_tess,
+		"",
 		path_tess_control,
 		path_tess_evaulation
 	);
