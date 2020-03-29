@@ -64,7 +64,7 @@ int g_displacement = 0;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
-float g_level_tess = 1000;
+float g_level_tess = 1;
 float g_tess_speed = 100;
 
 float camera_moveSpeed_perframe = 0.5f;
@@ -639,7 +639,7 @@ void RenderScene( bool i_bDrawShdow = false )
 	glBindVertexArray( VAO_plane );
 	// draw the tessellation plane
 	{
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "shadowing" ), 0 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "shadowing" ), 1 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), g_displacement );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
@@ -704,17 +704,6 @@ void Display()
 		GenerateShadowMap();
 		glCullFace( GL_BACK );
 		g_tex_renderDepth.Unbind();
-	}
-	{
-		//glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		//g_sp_quad.Bind();
-
-		//glActiveTexture( GL_TEXTURE0 );
-		//glBindTexture( GL_TEXTURE_2D, g_tex_renderDepth.GetTextureID() );
-		//glUniform1i( glGetUniformLocation( g_sp_quad.GetID(), "tex_render" ), 0 );
-		//glBindVertexArray( VAO_quad );
-		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( count_quad_indices ), GL_UNSIGNED_INT, 0 );
-		//glBindVertexArray( 0 );
 	}
 	{
 		RenderScene( true );
@@ -1095,7 +1084,6 @@ int main( int argc, char* argv[] )
 	}
 	InitializeView();
 	InitializeDepthMap( g_tex_renderDepth );
-	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
