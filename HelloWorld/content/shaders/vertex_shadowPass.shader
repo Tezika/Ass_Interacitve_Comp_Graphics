@@ -9,7 +9,7 @@ layout( location = 0 ) in vec3 i_pos;
 uniform mat4 mat_lightSpaceTransformation;
 uniform mat4 mat_model;
 
-out vec4 fragPosInLightView;
+out vec4 fragPosInLightSpace;
 // Output
 //=======
 // layout( location = 1) out vec4 o_vertexColor;
@@ -22,6 +22,6 @@ out vec4 fragPosInLightView;
 
 void main()
 {
-	fragPosInLightView =  mat_lightSpaceTransformation * mat_model * vec4(i_pos, 1);
+	fragPosInLightSpace =  mat_lightSpaceTransformation * mat_model * vec4(i_pos, 1);
  	gl_Position = fragPosInLightView;
 }

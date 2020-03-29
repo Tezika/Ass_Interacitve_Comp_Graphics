@@ -290,7 +290,7 @@ void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 void InitializeDepthMap( cyGLRenderDepth2D& i_renderDepth2D )
 {
 	// Do not initialize it as a render depth texture to test it.
-	if (!i_renderDepth2D.Initialize( false ))
+	if (!i_renderDepth2D.Initialize( true ))
 	{
 		fprintf( stderr, "Failed to generate the render depth texture." );
 		assert( false );
@@ -582,6 +582,29 @@ void InitializeSimpleQuad( const char* i_objFileName, cyTriMesh& i_mesh, GLuint&
 	}
 }
 
+void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
+{
+	// Generate the render to texture's vbo and vao
+	glGenVertexArrays( 1, &i_VAO );
+	glBindVertexArray( i_VAO );
+
+	glGenBuffers( 1, &i_VBO );
+	glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)( 0 ) );
+	glEnableVertexAttribArray( 0 );
+	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)( 3 * sizeof( GLfloat ) ) );
+	glEnableVertexAttribArray( 1 );
+
+	glGenBuffers( 1, &i_EBO );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, i_EBO );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>( sizeof( unsigned int ) * count_quad_indices ), &g_quad_indices_data[0], GL_STATIC_DRAW );
+	assert( glGetError() == GL_NO_ERROR );
+
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+}
+
 void InitializeView()
 {
 	g_target_camera = ( g_planeMesh.GetBoundMax() + g_planeMesh.GetBoundMin() ) / 2;
@@ -599,9 +622,9 @@ void InitializeView()
 #pragma region
 void RenderScene( bool i_bDrawShdow = false )
 {
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	// Draw the light source
 	{
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		g_sp_lightMesh.Bind();
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_light.cell );
 		glBindVertexArray( VAO_light );
@@ -609,26 +632,33 @@ void RenderScene( bool i_bDrawShdow = false )
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
-	g_tex_normalMap.Bind( 1 );
-	if (g_displacement)
+	g_sp_tessellation.Bind();
+	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_shadow" ), 0 );
+	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 1 );
+	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 2 );
+	glBindVertexArray( VAO_plane );
+	// draw the tessellation plane
 	{
-		g_tex_dispMap.Bind( 2 );
-	}
-	//Display the plane
-	{
-		g_sp_tessellation.Bind();
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_normal" ), 1 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_disp" ), 2 );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "tex_shadowMap" ), 0 );
+		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "shadowing" ), 0 );
 		glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), g_level_tess );
 		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), g_displacement );
-		glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "shadowing" ), 1 );
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-		glBindVertexArray( VAO_plane );
 		glPatchParameteri( GL_PATCH_VERTICES, 4 );
 		glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );
-		glBindVertexArray( 0 );
 	}
+
+	// Draw the shadow-cast plane
+	//{
+	//	cyMatrix4f mat_plane( g_mat_plane );
+	//	mat_plane.SetTranslation( cyVec3f( 0, 0, 1 ) );
+	//	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "shadowing" ), 1 );
+	//	glUniform1f( glGetUniformLocation( g_sp_tessellation.GetID(), "level_tess" ), 1 );
+	//	glUniform1i( glGetUniformLocation( g_sp_tessellation.GetID(), "displacement" ), g_displacement );
+	//	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_model" ), 1, GL_FALSE, mat_plane.cell );
+	//	glPatchParameteri( GL_PATCH_VERTICES, 4 );
+	//	glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );
+	//}
+
 	if (bShowTessGrids)
 	{
 		// Draw the outline of the plane separately
@@ -639,11 +669,9 @@ void RenderScene( bool i_bDrawShdow = false )
 			glUniform1f( glGetUniformLocation( g_sp_outline.GetID(), "level_tess" ), g_level_tess );
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_normal" ), 1 );
 			glUniform1i( glGetUniformLocation( g_sp_outline.GetID(), "tex_disp" ), 2 );
-			glBindVertexArray( VAO_plane );
 			glPatchParameteri( GL_PATCH_VERTICES, 4 );
 			glDrawArrays( GL_PATCHES, 0, g_planeMesh.NV() );
 			assert( glGetError() == GL_NO_ERROR );
-			glBindVertexArray( 0 );
 		}
 	}
 }
@@ -651,10 +679,8 @@ void RenderScene( bool i_bDrawShdow = false )
 void GenerateShadowMap()
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-
+	g_sp_shadowPass_tess.Bind();
 	{
-		g_sp_shadowPass_tess.Bind();
 		glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_normal" ), 1 );
 		glUniform1i( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "tex_disp" ), 2 );
 		glUniform1f( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "level_tess" ), g_level_tess );
@@ -680,6 +706,17 @@ void Display()
 		g_tex_renderDepth.Unbind();
 	}
 	{
+		//glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		//g_sp_quad.Bind();
+
+		//glActiveTexture( GL_TEXTURE0 );
+		//glBindTexture( GL_TEXTURE_2D, g_tex_renderDepth.GetTextureID() );
+		//glUniform1i( glGetUniformLocation( g_sp_quad.GetID(), "tex_render" ), 0 );
+		//glBindVertexArray( VAO_quad );
+		//glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( count_quad_indices ), GL_UNSIGNED_INT, 0 );
+		//glBindVertexArray( 0 );
+	}
+	{
 		RenderScene( true );
 	}
 	assert( glGetError() == GL_NO_ERROR );
@@ -703,10 +740,15 @@ void UpdateCamera()
 	g_sp_tessellation.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "viewPos" ), 1, &g_cameraPosInWorld.elem[0] );
 
 	g_sp_outline.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_outline.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
+
+	g_sp_shadowPass_tess.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 
 	assert( glGetError() == GL_NO_ERROR );
 }
@@ -737,24 +779,28 @@ void UpdateLight()
 	glUniform3fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "lightPos" ), 1, &lightSource.elem[0] );
 
 	g_sp_tessellation.Bind();
-	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "worldPos_light" ), 1, &g_lightPosInWorld.elem[0] );
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_light" ), 1, GL_FALSE, g_mat_light.cell );
+	glUniform3fv( glGetUniformLocation( g_sp_tessellation.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
 
-	//g_sp_shadowPass_tess.Bind();
-	//glUniformMatrix4fv( glGetUniformLocation( g_sp_tessellation.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+	g_sp_shadowPass_tess.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass_tess.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+
+	g_sp_quad.Bind();
+	auto mat_quad_rot = cyMatrix4f( 1.0f );
+	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_quad.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
+	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "dis" ), 1.0f );
+	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "near_plane" ), near_plane );
+	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "far_plane" ), far_plane );
+	glUniform1i( glGetUniformLocation( g_sp_quad.GetID(), "texture_render" ), 0 );
 }
 
 void UpdateModels()
 {
 	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
 	g_mat_model.SetTranslation( cyVec3f( 0, 10, 0 ) );
-
 #if defined(RENDER_SHADOW)
-	g_sp_quad.Bind();
-	auto mat_quad_rot = cyMatrix4f( 1.0f );
-	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_quad.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
-	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "dis" ), 1.0f );
+
 #endif
 }
 
@@ -1032,6 +1078,13 @@ int main( int argc, char* argv[] )
 		path_tess_control,
 		path_tess_evaulation
 	);
+
+	CompileShaders(
+		path_vertexShader_quad,
+		path_fragmentShader_quad,
+		g_sp_quad,
+		""
+	);
 	assert( glGetError() == GL_NO_ERROR );
 
 	// Load the flip .png to resolve the texture upside down bug.
@@ -1042,6 +1095,7 @@ int main( int argc, char* argv[] )
 	}
 	InitializeView();
 	InitializeDepthMap( g_tex_renderDepth );
+	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
@@ -1069,6 +1123,7 @@ int main( int argc, char* argv[] )
 		g_sp_lightMesh.Delete();
 		g_sp_quad.Delete();
 		g_sp_shadowPass_tess.Delete();
+		g_sp_quad.Delete();
 
 		if (glGetError() != GL_NO_ERROR)
 		{

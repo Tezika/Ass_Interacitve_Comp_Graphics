@@ -6,7 +6,6 @@
 // will determine the color of the corresponding pixel on the screen
 
 in vec3 fragPos;
-in vec3 lightPos;
 in vec2 texCoord;
 in vec4 fragPosInLightSpace;
 out vec4 o_color;
@@ -18,6 +17,9 @@ uniform vec3 specularColor;
 uniform sampler2D tex_normal;
 uniform sampler2D tex_shadowMap;
 uniform int shadowing;
+
+uniform vec3 viewPos;
+uniform vec3 lightPos;
 
 // Entry Point
 //============
@@ -42,7 +44,7 @@ void main()
 	float diff = max(dot(lightDir,normal), 0.0);
 	// Blinn - Phong shading
 	float spec = 0;
-	vec3 viewDir = normalize(-fragPos);
+	vec3 viewDir = normalize(viewPos - fragPos);
 	vec3 halfDir = normalize(lightPos + viewDir);
 	float specAngle = max(dot(halfDir, normal), 0.0);
 	spec = pow(specAngle, 16.0);
