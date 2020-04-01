@@ -27,11 +27,21 @@ uniform vec3 lightPos;
 
 float calculateShadow(vec4 i_fragPosInLightSpace, float i_bias)
 {
-	vec3 projCoord = i_fragPosInLightSpace.xyz / i_fragPosInLightSpace.w;
-	projCoord = projCoord * 0.5 + 0.5;
-	float closestDepth  = texture(tex_shadowMap, projCoord.xy).z;
-	float currentDepth = projCoord.z;
-	float shadow = currentDepth - i_bias > closestDepth ? 1.0 : 0.0;
+	vec3 projCoords = i_fragPosInLightSpace.xyz / i_fragPosInLightSpace.w;
+	projCoords = projCoords * 0.5 + 0.5;
+	float currentDepth = projCoords.z;
+	// PCF
+	float shadow = 0;
+	vec2 texelSize = 1.0/textureSize(tex_shadowMap, 0);
+	for(int x = -1; x <= 1; x++)
+	{
+		for(int y = -1; y <= 1; y++)
+		{
+			float pcfDepth = texture(tex_shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+        	shadow += currentDepth - i_bias > pcfDepth ? 1.0 : 0.0;  
+		}
+	}
+	shadow /= 9.0;
 	return shadow;
 }
 
