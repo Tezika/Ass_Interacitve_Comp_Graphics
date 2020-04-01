@@ -67,8 +67,8 @@ cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 30.0f, 40.0f );
 cyVec3f g_cameraPosInWorld = cyVec3f( 40.0f, 100.0f, 40.0f );
 
 float g_moveSpeed = 20;
-float g_rotate_yaw = 20;
-float g_rotate_pitch = 15;
+float g_rotate_yaw = 60;
+float g_rotate_pitch = 40;
 
 float rotation_yaw = 2.0f;
 float rotation_pitch = 1.5f;
