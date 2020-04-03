@@ -956,8 +956,8 @@ int main( int argc, char* argv[] )
 	g_sp_shadowMesh.Bind();
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_pcfFiltering" ), g_num_pcfFilteringSamples );
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_blockerSearch" ), g_num_blockerSearchSamples );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 3.0f );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.003f );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 2.0f );
 	CheckGLError();
 
 	InitializeView();
