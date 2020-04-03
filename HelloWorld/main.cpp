@@ -12,7 +12,6 @@
 #include <glm/common.hpp>
 #include <vector>
 #include "lodepng.h"
-#include "Texture.h"
 
 GLuint VAO;
 GLuint VBO;
@@ -168,7 +167,6 @@ const unsigned int count_quad_indices = 6;
 
 namespace
 {
-
 	void CheckGLError()
 	{
 		auto err = glGetError();
@@ -191,7 +189,6 @@ namespace
 			fprintf( stdout, "Loaded/Decoded the %s texture successfully.\n", i_texturePath );
 		}
 	}
-
 	cyMatrix4f GetLookAtMatrix( const cyVec3f& i_pos, const cyVec3f& i_target, const cyVec3f& i_worldUp )
 	{
 		auto dir = ( i_pos - i_target ).GetNormalized();
@@ -294,7 +291,7 @@ void InitializeSkyBox()
 	glEnableVertexAttribArray( 0 );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindVertexArray( 0 );
-	assert( glGetError() == GL_NO_ERROR );
+	CheckGLError();
 }
 
 #pragma region  
@@ -432,7 +429,7 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 		}
 		glGenVertexArrays( 1, &i_VAO );
 		glBindVertexArray( i_VAO );
-		assert( glGetError() == GL_NO_ERROR );
+		CheckGLError();
 		const auto sizeOfVertices = static_cast<GLsizei>( vertices.size() * sizeof( cyVec3f ) );
 		const auto sizeOfNormals = static_cast<GLsizei>( vertexNormals.size() * sizeof( cyVec3f ) );
 		const auto sizeOfTexCoord = static_cast<GLsizei>( texCoords.size() * sizeof( cyVec2f ) );
@@ -453,10 +450,9 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 		glEnableVertexAttribArray( 2 );
 
 		glBindBuffer( GL_ARRAY_BUFFER, 0 );
-		assert( glGetError() == GL_NO_ERROR );
-
-		glBindBuffer( GL_ARRAY_BUFFER, 0 );
 		glBindVertexArray( 0 );
+
+		CheckGLError();
 	}
 	else
 	{
@@ -480,7 +476,7 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 		}
 		glGenVertexArrays( 1, &i_VAO );
 		glBindVertexArray( i_VAO );
-		assert( glGetError() == GL_NO_ERROR );
+		CheckGLError();
 		const auto sizeOfVertices = static_cast<GLsizei>( vertices.size() * sizeof( cyVec3f ) );
 		const auto sizeOfNormals = static_cast<GLsizei>( vertexNormals.size() * sizeof( cyVec3f ) );
 		// For vertex data buffer
@@ -520,7 +516,8 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 	glGenBuffers( 1, &i_EBO );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, i_EBO );
 	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>( sizeof( unsigned int ) * count_quad_indices ), &g_quad_indices_data[0], GL_STATIC_DRAW );
-	assert( glGetError() == GL_NO_ERROR );
+
+	CheckGLError();
 
 	glBindVertexArray( 0 );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
@@ -638,7 +635,7 @@ void UpdateCamera()
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_projection" ), 1, GL_FALSE, mat_perspective.cell );
 
-	assert( glGetError() == GL_NO_ERROR );
+	CheckGLError();
 }
 
 void UpdateLight()
@@ -917,6 +914,7 @@ int main( int argc, char* argv[] )
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_pcfFiltering" ), 4 );
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_blockerSearch" ), 4 );
 	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 1.0f );
 	InitializeView();
 	CheckGLError();
 
