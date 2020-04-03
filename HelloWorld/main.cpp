@@ -107,8 +107,8 @@ GLuint VAO_cubemap;
 GLuint VBO_cubemap;
 GLuint Tex_cubemap;
 
-int g_num_blockerSearchSamples = 16;
-int g_num_pcfFilteringSamples = 16;
+int g_num_blockerSearchSamples = 8;
+int g_num_pcfFilteringSamples = 8;
 
 const float g_skyboxVertices[] = {
 	// positions          
@@ -703,6 +703,7 @@ void UpdateLight()
 
 	g_sp_shadowMesh.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "near_plane" ), near_plane );
 	glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
 
 	g_sp_shadowPass.Bind();
@@ -956,7 +957,7 @@ int main( int argc, char* argv[] )
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_pcfFiltering" ), g_num_pcfFilteringSamples );
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_blockerSearch" ), g_num_blockerSearchSamples );
 	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 1.0f );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 3.0f );
 	CheckGLError();
 
 	InitializeView();

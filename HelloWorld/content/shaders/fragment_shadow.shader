@@ -28,6 +28,7 @@ uniform int numOfSample_pcfFiltering;
 uniform int numOfSample_blockerSearch;
 uniform float bias_dirLightShadowMap;
 uniform float lightSize;
+uniform float near_plane;
 
 uniform vec3 viewPos;
 uniform vec3 lightPos;
@@ -45,59 +46,65 @@ float pcf_dirLight(vec3 i_projCoords, float i_uvRadius )
 	float shadow = 0;
 	for (int i = 0; i < numOfSample_pcfFiltering; i++)
 	{
-		float z = texture(tex_shadowMap, i_projCoords.xy + randomDirection(tex_distribution1, i / float(numOfSample_pcfFiltering)) * texelSize).r;
+		float z = texture(tex_shadowMap, i_projCoords.xy + randomDirection(tex_distribution1, i / float(numOfSample_pcfFiltering)) * i_uvRadius).r;
 		shadow += (z < (i_projCoords.z - bias_dirLightShadowMap)) ? 1 : 0;
 	}
 	shadow /= numOfSample_pcfFiltering;
 	return shadow;
 }
 
-// float findBlockerDistance_dirLight(vec3 i_projCoords, vec2 i_texelSize ,float i_bias)
-// {
-// 	int numOfBlockers = 0;
-// 	float averageBlockerDis = 0;
-// 	for(int x = -width_blockerSearch; x <= width_blockerSearch; x++)
-// 	{
-// 		for(int y = -width_blockerSearch; y <= width_blockerSearch; y++)
-// 		{
-// 			float z = texture(tex_shadowMap, i_projCoords.xy + vec2(x,y) * i_texelSize).r;
-// 			if( z < (i_projCoords.z - i_bias))
-// 			{
-// 				++numOfBlockers;
-// 				averageBlockerDis += z;
-// 			}
-// 		}
-// 	}
-// 	if( numOfBlockers > 0 )
-// 	{
-// 		return averageBlockerDis /= numOfBlockers;
-// 	}
-// 	else
-// 	{
-// 		return -1;
-// 	}
-// }
+//////////////////////////////////////////////////////////////////////////
+// this search area estimation comes from the following article: 
+// http://developer.download.nvidia.com/whitepapers/2008/PCSS_DirectionalLight_Integration.pdf
+float searchWidth(float i_lightSize, float i_receiverDistance)
+{
+	return i_lightSize * (i_receiverDistance - near_plane) / viewPos.z;
+}
 
-// float pcss_dirLight(vec3 i_projCoords, float i_texelSize, float i_bias, float i_lightSize)
-// {
-// 	// blocker search
-// 	float blockerDistance = findBlockerDistance_dirLight(i_projCoords, i_texelSize, uvLightSize);
-// 	if (blockerDistance == -1)
-// 		return 1;		
+float findBlockerDistance_dirLight(vec3 i_projCoords, float i_lightSize)
+{
+	int numOfBlockers = 0;
+	float averageBlockerDis = 0;
+	float width_search = searchWidth(i_lightSize, i_projCoords.z);
+	for (int i = 0; i < numOfSample_blockerSearch; i++)
+	{
+		float z = texture(tex_shadowMap, i_projCoords.xy + randomDirection(tex_distribution0, i / float(numOfSample_blockerSearch)) * width_search).r;
+		if (z < (i_projCoords.z - bias_dirLightShadowMap))
+		{
+			numOfBlockers++;
+			averageBlockerDis += z;
+		}
+	}
+	if( numOfBlockers > 0 )
+	{
+		return averageBlockerDis /= numOfBlockers;
+	}
+	else
+	{
+		return -1;
+	}
+}
 
-// 	// penumbra estimation
-// 	float penumbraWidth = (shadowCoords.z - blockerDistance) / blockerDistance;
+float pcss_dirLight(vec3 i_projCoords, float i_lightSize)
+{
+	// blocker search
+	float blockerDistance = findBlockerDistance_dirLight(i_projCoords, i_lightSize);
+	if (blockerDistance == -1)
+		return 1;		
 
-// 	// percentage-close filtering
-// 	float uvRadius = penumbraWidth * i_lightSize * NEAR / i_projCoords.z;
-// 	return pcf_dirLight(i_projCoords, i_texelSize, uvRadius);
-// }
+	// penumbra estimation
+	float penumbraWidth = (i_projCoords.z - blockerDistance) / blockerDistance;
+
+	// percentage-close filtering
+	float uvRadius = penumbraWidth * i_lightSize * near_plane / i_projCoords.z;
+	return 1 - pcf_dirLight(i_projCoords, uvRadius);
+}
 
 float calculateShadow(vec4 i_fragPosInLightSpace, float i_lightSize)
 {
 	vec3 projCoords = i_fragPosInLightSpace.xyz / i_fragPosInLightSpace.w;
 	projCoords = projCoords * 0.5 + 0.5;
-	return pcf_dirLight( projCoords, 0.1f );
+	return pcss_dirLight(projCoords, i_lightSize);
 }
 
 // Entry Point
@@ -121,8 +128,8 @@ void main()
 
 	// Calulate shadow
 	texelSize = 1.0/textureSize(tex_shadowMap, 0);
-	float shadow = receiveShadow == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, lightSize);
-	vec3 lighting = ambient + (1-shadow) *(diffuse + specular);
+	float shadowness = receiveShadow == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, lightSize);
+	vec3 lighting = ambient + shadowness *(diffuse + specular);
 
 	o_color = vec4(lighting, 1);
 }
