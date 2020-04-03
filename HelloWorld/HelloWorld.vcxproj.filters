@@ -15,5 +15,6 @@
     <ClInclude Include="lodepng.h">
       <Filter>LodePNG</Filter>
     </ClInclude>
+    <ClInclude Include="PoissonGenerator.h" />
   </ItemGroup>
 </Project>

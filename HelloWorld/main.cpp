@@ -12,6 +12,7 @@
 #include <glm/common.hpp>
 #include <vector>
 #include "lodepng.h"
+#include "PoissonGenerator.h"
 
 GLuint VAO;
 GLuint VBO;
