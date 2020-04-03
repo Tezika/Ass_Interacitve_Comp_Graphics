@@ -30,6 +30,9 @@ GLuint EBO_quad;
 cyGLRenderTexture2D g_rtt_mirror;
 cyGLRenderDepth2D g_tex_renderDepth;
 
+cyGLTexture1D g_tex_possion_distribution0;
+cyGLTexture1D g_tex_possion_distribution1;
+
 cyGLSLProgram g_sp_skybox;
 cyGLSLProgram g_sp_shadowMap;
 cyGLSLProgram g_sp_shadowPass;
@@ -104,6 +107,9 @@ GLuint VAO_cubemap;
 GLuint VBO_cubemap;
 GLuint Tex_cubemap;
 
+int g_num_blockerSearchSamples = 16;
+int g_num_pcfFilteringSamples = 16;
+
 const float g_skyboxVertices[] = {
 	// positions          
 	-1.0f,  1.0f, -1.0f,
@@ -177,6 +183,32 @@ namespace
 			assert( false );
 		}
 	}
+	void CreatePoissonDiscDistribution( cyGLTexture1D& io_tex, size_t numSamples )
+	{
+		PoissonGenerator::DefaultPRNG PRNG_0;
+		PoissonGenerator::DefaultPRNG PRNG_1;
+		auto points = PoissonGenerator::GeneratePoissonPoints( numSamples * 2, PRNG_0 );
+		size_t attempts = 0;
+		while (points.size() < numSamples && ++attempts < 100)
+			points = PoissonGenerator::GeneratePoissonPoints( numSamples * 2, PRNG_1 );
+		if (attempts == 100)
+		{
+			std::cout << "couldn't generate Poisson-disc distribution with " << numSamples << " samples" << std::endl;
+			numSamples = points.size();
+		}
+		std::vector<float> data( numSamples * 2 );
+		for (auto i = 0, j = 0; i < numSamples; i++, j += 2)
+		{
+			auto& point = points[i];
+			data[j] = point.x;
+			data[j + 1] = point.y;
+		}
+		io_tex.Initialize();
+		io_tex.SetImageRG<float>( data.data(), numSamples, 0 );
+		io_tex.SetFilteringMode( GL_NEAREST, GL_NEAREST );
+		io_tex.SetWrappingMode( GL_CLAMP );
+	}
+
 	void LoadTextureData( const char* i_texturePath, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
 	{
 		io_data.clear();
@@ -561,7 +593,11 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 0 );
 	}
-
+	g_tex_possion_distribution0.Bind( 1 );
+	g_tex_possion_distribution1.Bind( 2 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_distribution0" ), 1 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_distribution1" ), 2 );
+	CheckGLError();
 	// Draw the plane 
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
@@ -576,6 +612,7 @@ void RenderScene( bool i_bDrawShdow = false )
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		glBindVertexArray( 0 );
 	}
+	CheckGLError();
 }
 
 void GenerateShadowMap()
@@ -911,11 +948,17 @@ int main( int argc, char* argv[] )
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
 	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
 
+	CreatePoissonDiscDistribution( g_tex_possion_distribution0, g_num_pcfFilteringSamples );
+	CreatePoissonDiscDistribution( g_tex_possion_distribution1, g_num_blockerSearchSamples );
+	CheckGLError();
+
 	g_sp_shadowMesh.Bind();
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_pcfFiltering" ), 4 );
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_blockerSearch" ), 4 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_pcfFiltering" ), g_num_pcfFilteringSamples );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_blockerSearch" ), g_num_blockerSearchSamples );
 	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
 	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 1.0f );
+	CheckGLError();
+
 	InitializeView();
 	CheckGLError();
 
@@ -942,6 +985,9 @@ int main( int argc, char* argv[] )
 		CheckGLError();
 
 		g_tex_renderDepth.Delete();
+		g_tex_possion_distribution0.Delete();
+		g_tex_possion_distribution1.Delete();
+
 		g_sp_shadowPass.Delete();
 		g_sp_shadowMesh.Delete();
 		g_sp_lightMesh.Delete();
