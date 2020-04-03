@@ -27,9 +27,6 @@ GLuint VAO_quad;
 GLuint VBO_quad;
 GLuint EBO_quad;
 
-Ass_Inter_Comp_Graphics::Texture* pDiffuseTex;
-Ass_Inter_Comp_Graphics::Texture* pSpecularTex;
-
 cyGLRenderTexture2D g_rtt_mirror;
 cyGLRenderDepth2D g_tex_renderDepth;
 
@@ -347,35 +344,35 @@ void InitializeDepthMap( cyGLRenderDepth2D& i_renderDepth2D )
 
 void InitializeTextures( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 {
-	if (i_mesh.NM() <= 0)
-	{
-		return;
-	}
-	if (i_mesh.M( 0 ).map_Kd != nullptr)
-	{
-		std::string path_diffusesTex( path_meshResource );
-		path_diffusesTex += i_mesh.M( 0 ).map_Kd;
-		pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
-		if (!pDiffuseTex)
-		{
-			fprintf( stderr, "Failed to create the diffuse texture.\n" );
-			assert( false );
-		}
-	}
-	if (i_mesh.M( 0 ).map_Ks != nullptr)
-	{
-		std::string path_specularTex( path_meshResource );
-		path_specularTex += i_mesh.M( 0 ).map_Ks;
-		pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
-		if (!pSpecularTex)
-		{
-			fprintf( stderr, "Failed to create the specular texture.\n" );
-			assert( false );
-		}
-	}
-	i_shaderProgram.Bind();
-	glUniform1i( glGetUniformLocation( i_shaderProgram.GetID(), "tex_diff" ), 0 );
-	glUniform1i( glGetUniformLocation( i_shaderProgram.GetID(), "tex_spec" ), 1 );
+	//if (i_mesh.NM() <= 0)
+	//{
+	//	return;
+	//}
+	//if (i_mesh.M( 0 ).map_Kd != nullptr)
+	//{
+	//	std::string path_diffusesTex( path_meshResource );
+	//	path_diffusesTex += i_mesh.M( 0 ).map_Kd;
+	//	pDiffuseTex = Ass_Inter_Comp_Graphics::Texture::Create( path_diffusesTex.c_str() );
+	//	if (!pDiffuseTex)
+	//	{
+	//		fprintf( stderr, "Failed to create the diffuse texture.\n" );
+	//		assert( false );
+	//	}
+	//}
+	//if (i_mesh.M( 0 ).map_Ks != nullptr)
+	//{
+	//	std::string path_specularTex( path_meshResource );
+	//	path_specularTex += i_mesh.M( 0 ).map_Ks;
+	//	pSpecularTex = Ass_Inter_Comp_Graphics::Texture::Create( path_specularTex.c_str() );
+	//	if (!pSpecularTex)
+	//	{
+	//		fprintf( stderr, "Failed to create the specular texture.\n" );
+	//		assert( false );
+	//	}
+	//}
+	//i_shaderProgram.Bind();
+	//glUniform1i( glGetUniformLocation( i_shaderProgram.GetID(), "tex_diff" ), 0 );
+	//glUniform1i( glGetUniformLocation( i_shaderProgram.GetID(), "tex_spec" ), 1 );
 }
 
 void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO, GLuint& i_VBO )
@@ -951,10 +948,6 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &VBO_plane );
 		assert( glGetError() == GL_NO_ERROR );
 		assert( glGetError() == GL_NO_ERROR );
-		delete pDiffuseTex;
-		pDiffuseTex = nullptr;
-		delete pSpecularTex;
-		pSpecularTex = nullptr;
 		assert( glGetError() == GL_NO_ERROR );
 
 		g_tex_renderDepth.Delete();
