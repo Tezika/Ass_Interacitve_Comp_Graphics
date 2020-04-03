@@ -168,6 +168,16 @@ const unsigned int count_quad_indices = 6;
 
 namespace
 {
+
+	void CheckGLError()
+	{
+		auto err = glGetError();
+		if (err != GL_NO_ERROR)
+		{
+			fprintf( stderr, "There is an error with the GL, Error: %s\n", glewGetErrorString( err ) );
+			assert( false );
+		}
+	}
 	void LoadTextureData( const char* i_texturePath, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
 	{
 		io_data.clear();
@@ -201,9 +211,7 @@ namespace
 void CompileShaders( const char* i_path_vertexShader, const char* i_path_fragementShader, cyGLSLProgram& i_glslProgram )
 {
 	i_glslProgram.Delete();
-	assert( glGetError() == GL_NO_ERROR );
 	i_glslProgram.CreateProgram();
-	assert( glGetError() == GL_NO_ERROR );
 	cyGLSLShader vertexShader;
 	cyGLSLShader fragmentShader;
 	if (!vertexShader.CompileFile( i_path_vertexShader, GL_VERTEX_SHADER ))
@@ -225,7 +233,7 @@ void CompileShaders( const char* i_path_vertexShader, const char* i_path_frageme
 	i_glslProgram.AttachShader( vertexShader );
 	i_glslProgram.AttachShader( fragmentShader );
 	i_glslProgram.Link();
-	assert( glGetError() == GL_NO_ERROR );
+	CheckGLError();
 }
 
 unsigned int LoadCubemap( std::vector<std::string>& i_faces )
@@ -491,7 +499,7 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 		glBindBuffer( GL_ARRAY_BUFFER, 0 );
 		glBindBuffer( GL_ARRAY_BUFFER, 0 );
 		glBindVertexArray( 0 );
-		assert( glGetError() == GL_NO_ERROR );
+		CheckGLError();
 	}
 }
 
@@ -542,7 +550,6 @@ void RenderScene( bool i_bDrawShdow = false )
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_light.cell );
 		glBindVertexArray( VAO_light );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
 
@@ -562,7 +569,6 @@ void RenderScene( bool i_bDrawShdow = false )
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
 	// Draw the teapot
@@ -570,7 +576,6 @@ void RenderScene( bool i_bDrawShdow = false )
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
 }
@@ -584,7 +589,6 @@ void GenerateShadowMap()
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
 		glBindVertexArray( VAO );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
 	// Draw the plane 
@@ -592,7 +596,6 @@ void GenerateShadowMap()
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
-		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
 }
@@ -608,11 +611,11 @@ void Display()
 		glCullFace( GL_BACK );
 		g_tex_renderDepth.Unbind();
 	}
-
+	CheckGLError();
 	{
 		RenderScene( true );
 	}
-	assert( glGetError() == GL_NO_ERROR );
+	CheckGLError();
 }
 
 void UpdateCamera()
@@ -680,21 +683,11 @@ void UpdateModels()
 	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
 	g_mat_model.SetTranslation( cyVec3f( 0, 10, 0 ) );
 
-#if defined(RENDER_SHADOW)
 	g_sp_shadowMap.Bind();
 	auto mat_quad_rot = cyMatrix4f( 1.0f );
 	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMap.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
 	glUniform1f( glGetUniformLocation( g_sp_shadowMap.GetID(), "dis" ), 1.0f );
-#endif
-#if defined(RENDER_SKYBOX)
-	g_skyboxShaderProgram.Bind();
-	// Removed the translation from the view matrix
-	auto mat4_view = cyMatrix4f( cyMatrix3f( mat_view ) );
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_view" ), 1, GL_FALSE, mat4_view.cell );
-	glUniformMatrix4fv( glGetUniformLocation( g_skyboxShaderProgram.GetID(), "mat_proj" ), 1, GL_FALSE, mat_perspective.cell );
-	assert( glGetError() == GL_NO_ERROR );
-#endif
 }
 
 void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
@@ -922,10 +915,10 @@ int main( int argc, char* argv[] )
 
 	g_sp_shadowMesh.Bind();
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_pcfFiltering" ), 4 );
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_blockerSearch" ), 4);
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_blockerSearch" ), 4 );
 	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
-	assert( glGetError() != GL_NO_ERROR );
 	InitializeView();
+	CheckGLError();
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
@@ -947,9 +940,7 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &VBO );
 		glDeleteVertexArrays( 1, &VAO_plane );
 		glDeleteBuffers( 1, &VBO_plane );
-		assert( glGetError() == GL_NO_ERROR );
-		assert( glGetError() == GL_NO_ERROR );
-		assert( glGetError() == GL_NO_ERROR );
+		CheckGLError();
 
 		g_tex_renderDepth.Delete();
 		g_sp_shadowPass.Delete();
@@ -964,10 +955,7 @@ int main( int argc, char* argv[] )
 		glDeleteVertexArrays( 1, &VAO_light );
 		glDeleteBuffers( 1, &VBO_light );
 
-		if (glGetError() != GL_NO_ERROR)
-		{
-			assert( false );
-		}
+		CheckGLError();
 	}
 	glfwTerminate();
 	return 0;
