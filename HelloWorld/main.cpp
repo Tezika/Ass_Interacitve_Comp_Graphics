@@ -14,11 +14,6 @@
 #include "lodepng.h"
 #include "Texture.h"
 
-//#define RENDER_TO_TEXTURE
-//#define RENDER_SKYBOX
-//#define USE_REFlECTION_SHADER
-#define RENDER_SHADOW
-
 GLuint VAO;
 GLuint VBO;
 
@@ -39,7 +34,7 @@ cyGLRenderTexture2D g_rtt_mirror;
 cyGLRenderDepth2D g_tex_renderDepth;
 
 cyGLSLProgram g_sp_skybox;
-cyGLSLProgram g_sp_quad;
+cyGLSLProgram g_sp_shadowMap;
 cyGLSLProgram g_sp_shadowPass;
 cyGLSLProgram g_sp_shadowMesh;
 cyGLSLProgram g_sp_lightMesh;
@@ -95,7 +90,7 @@ constexpr char const* path_vertexShader_shadowPass = "content/shaders/vertex_sha
 constexpr char const* path_fragmentShader_shadowPass = "content/shaders/fragment_shadowPass.shader";
 
 constexpr char const* path_vertexShader_quad = "content/shaders/vertex_quad_texture.shader";
-constexpr char const* path_fragmentShader_quad = "content/shaders/fragment_quad_texture.shader";
+constexpr char const* path_fragmentShader_shadowMap = "content/shaders/fragment_quad_shadowMap.shader";
 
 constexpr char const* path_vertexShader_skybox = "content/shaders/vertex_skybox.shader";
 constexpr char const* path_fragmentShader_skybox = "content/shaders/fragment_skybox.shader";
@@ -192,7 +187,7 @@ namespace
 
 	cyMatrix4f GetLookAtMatrix( const cyVec3f& i_pos, const cyVec3f& i_target, const cyVec3f& i_worldUp )
 	{
-		auto dir = (i_pos - i_target).GetNormalized();
+		auto dir = ( i_pos - i_target ).GetNormalized();
 		auto right = i_worldUp.Cross( dir ).GetNormalized();
 		auto up = dir.Cross( right ).GetNormalized();
 
@@ -251,7 +246,7 @@ unsigned int LoadCubemap( std::vector<std::string>& i_faces )
 		if (data.data())
 		{
 			glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<void*>(data.data())
+				0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, reinterpret_cast<void*>( data.data() )
 			);
 		}
 		else
@@ -290,7 +285,7 @@ void InitializeSkyBox()
 	glGenBuffers( 1, &VBO_cubemap );
 	glBindBuffer( GL_ARRAY_BUFFER, VBO_cubemap );
 	glBufferData( GL_ARRAY_BUFFER, sizeof( g_skyboxVertices ), &g_skyboxVertices[0], GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), (const GLvoid*)(0) );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), (const GLvoid*)( 0 ) );
 	glEnableVertexAttribArray( 0 );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindVertexArray( 0 );
@@ -433,20 +428,20 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 		glGenVertexArrays( 1, &i_VAO );
 		glBindVertexArray( i_VAO );
 		assert( glGetError() == GL_NO_ERROR );
-		const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
-		const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
-		const auto sizeOfTexCoord = static_cast<GLsizei>(texCoords.size() * sizeof( cyVec2f ));
+		const auto sizeOfVertices = static_cast<GLsizei>( vertices.size() * sizeof( cyVec3f ) );
+		const auto sizeOfNormals = static_cast<GLsizei>( vertexNormals.size() * sizeof( cyVec3f ) );
+		const auto sizeOfTexCoord = static_cast<GLsizei>( texCoords.size() * sizeof( cyVec2f ) );
 		// For vertex data buffer
 		glGenBuffers( 1, &i_VBO );
 		glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
 		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals + sizeOfTexCoord, NULL, GL_STATIC_DRAW );
-		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
-		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
-		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, sizeOfTexCoord, reinterpret_cast<void*>(texCoords.data()) );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>( vertices.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>( vertexNormals.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, sizeOfTexCoord, reinterpret_cast<void*>( texCoords.data() ) );
 
-		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
-		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
-		glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec2f )), (const GLvoid*)(sizeOfVertices + sizeOfNormals) );
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( 0 ) );
+		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( sizeOfVertices ) );
+		glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec2f ) ), (const GLvoid*)( sizeOfVertices + sizeOfNormals ) );
 
 		glEnableVertexAttribArray( 0 );
 		glEnableVertexAttribArray( 1 );
@@ -481,17 +476,17 @@ void InitializeMesh( const char* i_objFileName, cyTriMesh& i_mesh, GLuint& i_VAO
 		glGenVertexArrays( 1, &i_VAO );
 		glBindVertexArray( i_VAO );
 		assert( glGetError() == GL_NO_ERROR );
-		const auto sizeOfVertices = static_cast<GLsizei>(vertices.size() * sizeof( cyVec3f ));
-		const auto sizeOfNormals = static_cast<GLsizei>(vertexNormals.size() * sizeof( cyVec3f ));
+		const auto sizeOfVertices = static_cast<GLsizei>( vertices.size() * sizeof( cyVec3f ) );
+		const auto sizeOfNormals = static_cast<GLsizei>( vertexNormals.size() * sizeof( cyVec3f ) );
 		// For vertex data buffer
 		glGenBuffers( 1, &i_VBO );
 		glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
 		glBufferData( GL_ARRAY_BUFFER, sizeOfVertices + sizeOfNormals, NULL, GL_STATIC_DRAW );
-		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>(vertices.data()) );
-		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>(vertexNormals.data()) );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, sizeOfVertices, reinterpret_cast<void*>( vertices.data() ) );
+		glBufferSubData( GL_ARRAY_BUFFER, sizeOfVertices, sizeOfNormals, reinterpret_cast<void*>( vertexNormals.data() ) );
 
-		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(0) );
-		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(sizeof( cyVec3f )), (const GLvoid*)(sizeOfVertices) );
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( 0 ) );
+		glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>( sizeof( cyVec3f ) ), (const GLvoid*)( sizeOfVertices ) );
 
 		glEnableVertexAttribArray( 0 );
 		glEnableVertexAttribArray( 1 );
@@ -512,14 +507,14 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 	glGenBuffers( 1, &i_VBO );
 	glBindBuffer( GL_ARRAY_BUFFER, i_VBO );
 	glBufferData( GL_ARRAY_BUFFER, sizeof( g_quad_buffer_data ), g_quad_buffer_data, GL_STATIC_DRAW );
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(0) );
+	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)( 0 ) );
 	glEnableVertexAttribArray( 0 );
-	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)(3 * sizeof( GLfloat )) );
+	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( GLfloat ), (const GLvoid*)( 3 * sizeof( GLfloat ) ) );
 	glEnableVertexAttribArray( 1 );
 
 	glGenBuffers( 1, &i_EBO );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, i_EBO );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof( unsigned int ) * count_quad_indices), &g_quad_indices_data[0], GL_STATIC_DRAW );
+	glBufferData( GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>( sizeof( unsigned int ) * count_quad_indices ), &g_quad_indices_data[0], GL_STATIC_DRAW );
 	assert( glGetError() == GL_NO_ERROR );
 
 	glBindVertexArray( 0 );
@@ -528,14 +523,14 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 
 void InitializeView()
 {
-	g_target_camera = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
-	g_target_light = (g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin()) / 2;
+	g_target_camera = ( g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin() ) / 2;
+	g_target_light = ( g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin() ) / 2;
 
-	g_dir_targetToCamera = (g_cameraPosInWorld - g_target_camera).GetNormalized();
-	g_dir_targetTolight = (g_lightPosInWorld - g_target_light).GetNormalized();
+	g_dir_targetToCamera = ( g_cameraPosInWorld - g_target_camera ).GetNormalized();
+	g_dir_targetTolight = ( g_lightPosInWorld - g_target_light ).GetNormalized();
 
-	g_dis_cameraToTarget = (g_cameraPosInWorld - g_target_camera).Length();
-	g_dis_lightToTarget = (g_lightPosInWorld - g_target_light).Length();
+	g_dis_cameraToTarget = ( g_cameraPosInWorld - g_target_camera ).Length();
+	g_dis_lightToTarget = ( g_lightPosInWorld - g_target_light ).Length();
 }
 
 #pragma endregion Initialization
@@ -560,13 +555,13 @@ void RenderScene( bool i_bDrawShdow = false )
 		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap" ), 0 );
 	}
 
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 0 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 0 );
 	// Draw the plane 
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
 		if (i_bDrawShdow)
 		{
-			glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "shadowing" ), 1 );
+			glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 1 );
 		}
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
@@ -577,11 +572,14 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
 		glBindVertexArray( VAO );
+		if (i_bDrawShdow)
+		{
+			glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 1 );
+		}
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
 	}
-
 }
 
 void GenerateShadowMap()
@@ -668,9 +666,9 @@ void UpdateLight()
 
 	auto mat_lightSpace = mat_perspective * mat_lightSpace_view;
 
-	g_sp_quad.Bind();
-	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "near_plane" ), near_plane );
-	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "far_plane" ), far_plane );
+	g_sp_shadowMap.Bind();
+	glUniform1f( glGetUniformLocation( g_sp_shadowMap.GetID(), "near_plane" ), near_plane );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMap.GetID(), "far_plane" ), far_plane );
 
 	g_sp_shadowMesh.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
@@ -690,11 +688,11 @@ void UpdateModels()
 	g_mat_model.SetTranslation( cyVec3f( 0, 10, 0 ) );
 
 #if defined(RENDER_SHADOW)
-	g_sp_quad.Bind();
+	g_sp_shadowMap.Bind();
 	auto mat_quad_rot = cyMatrix4f( 1.0f );
 	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_quad.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
-	glUniform1f( glGetUniformLocation( g_sp_quad.GetID(), "dis" ), 1.0f );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMap.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMap.GetID(), "dis" ), 1.0f );
 #endif
 #if defined(RENDER_SKYBOX)
 	g_skyboxShaderProgram.Bind();
@@ -912,36 +910,22 @@ int main( int argc, char* argv[] )
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 
-#if defined(USE_REFlECTION_SHADER)
-	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_meshShaderProgram );
-	CompileShaders( path_vertexShader_reflection, path_fragmentShader_reflection, g_planeShaderProgram );
-#elif defined(RENDER_SHADOW)
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
 	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_sp_shadowMesh );
 	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_sp_shadowPass );
-#else
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
-	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_planeShaderProgram );
-#endif
+
 	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_objMesh, g_sp_shadowMesh );
 
-#if defined(RENDER_SHADOW)
-	CompileShaders( path_vertexShader_quad, path_fragmentShader_quad, g_sp_quad );
+	CompileShaders( path_vertexShader_quad, path_fragmentShader_shadowMap, g_sp_shadowMap );
 	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
 	InitializeDepthMap( g_tex_renderDepth );
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
 	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
-#endif
 
-#if defined(RENDER_TO_TEXTURE)
-	InitializeRenderTexture( g_rtt_mirror );
-#endif
-
-#if defined(RENDER_SKYBOX)
-	InitializeSkyBox();
-#endif
+	g_sp_shadowMesh.Bind();
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "PCF_filterWidth" ), 4);
 
 	InitializeView();
 
@@ -973,30 +957,19 @@ int main( int argc, char* argv[] )
 		pSpecularTex = nullptr;
 		assert( glGetError() == GL_NO_ERROR );
 
-#if defined(RENDER_TO_TEXTURE)
-		g_rtt_mirror.Delete();
-		assert( glGetError() == GL_NO_ERROR );
-#endif
-
-#if defined(RENDER_SKYBOX)
-		glDeleteVertexArrays( 1, &VAO_cubemap );
-		glDeleteBuffers( 1, &VBO_cubemap );
-		g_skyboxShaderProgram.Delete();
-		assert( glGetError() == GL_NO_ERROR );
-#endif
-
-#if defined(RENDER_SHADOW)
 		g_tex_renderDepth.Delete();
 		g_sp_shadowPass.Delete();
 		g_sp_shadowMesh.Delete();
 		g_sp_lightMesh.Delete();
+		g_sp_shadowMap.Delete();
+
 		glDeleteVertexArrays( 1, &VAO_quad );
 		glDeleteBuffers( 1, &VBO_quad );
 		glDeleteBuffers( 1, &EBO_quad );
 
 		glDeleteVertexArrays( 1, &VAO_light );
 		glDeleteBuffers( 1, &VBO_light );
-#endif
+
 		if (glGetError() != GL_NO_ERROR)
 		{
 			assert( false );

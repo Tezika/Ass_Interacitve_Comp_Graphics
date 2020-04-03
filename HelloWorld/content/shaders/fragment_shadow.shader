@@ -20,29 +20,44 @@ uniform vec3 diffuseColor;
 uniform vec3 ambientColor;
 uniform vec3 specularColor;
 uniform vec3 emitColor;
-uniform int  shadowing;
+uniform int  receiveShadow;
+uniform int PCF_filterWidth;
 
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 
-float calculateShadow(vec4 i_fragPosInLightSpace, float i_bias)
+float pcf_dirLight(vec3 projCoords, float i_bias)
 {
-	vec3 projCoords = i_fragPosInLightSpace.xyz / i_fragPosInLightSpace.w;
-	projCoords = projCoords * 0.5 + 0.5;
 	float currentDepth = projCoords.z;
-	// PCF
 	float shadow = 0;
 	vec2 texelSize = 1.0/textureSize(tex_shadowMap, 0);
-	for(int x = -1; x <= 1; x++)
+	for(int x = -PCF_filterWidth; x <= PCF_filterWidth; x++)
 	{
-		for(int y = -1; y <= 1; y++)
+		for(int y = -PCF_filterWidth; y <= PCF_filterWidth; y++)
 		{
 			float pcfDepth = texture(tex_shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
         	shadow += currentDepth - i_bias > pcfDepth ? 1.0 : 0.0;  
 		}
 	}
-	shadow /= 9.0;
+	shadow /= (PCF_filterWidth * PCF_filterWidth);
 	return shadow;
+}
+
+float blockersSearch_dirLight()
+{
+  return 0;
+}
+
+float penumbra_Estimate_dirLight()
+{
+	return 0;
+}
+
+float calculateShadow(vec4 i_fragPosInLightSpace, float i_bias)
+{
+	vec3 projCoords = i_fragPosInLightSpace.xyz / i_fragPosInLightSpace.w;
+	projCoords = projCoords * 0.5 + 0.5;
+	return pcf_dirLight( projCoords, i_bias );
 }
 
 // Entry Point
@@ -53,7 +68,6 @@ void main()
 	vec3 normal = normalize(normalInterp);
 	vec3 lightDir = normalize(lightPos - fragPos);
 	float diff = max(dot(lightDir,normal), 0.0);
-	// float bias = max(0.05 * (1.0 - diff), 0.001); 
 
 	// Blinn - Phong
 	float spec = 0;
@@ -64,7 +78,9 @@ void main()
 	vec3 ambient = ambientColor;
 	vec3 diffuse = diffuseColor * diff;
 	vec3 specular = specularColor * spec;
-	float shadow = shadowing == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, 0.001);
+
+	// Calulate shadow
+	float shadow = receiveShadow == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, 0.001);
 	vec3 lighting = ambient + (1-shadow) *(diffuse + specular);
 	o_color = vec4(lighting, 1);
 }
