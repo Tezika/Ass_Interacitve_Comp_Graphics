@@ -20,8 +20,11 @@ uniform vec3 diffuseColor;
 uniform vec3 ambientColor;
 uniform vec3 specularColor;
 uniform vec3 emitColor;
-uniform int  receiveShadow;
-uniform int PCF_filterWidth;
+
+uniform int receiveShadow;
+uniform int width_pcfFiltering;
+uniform int width_blockerSearch;
+uniform float bias_dirLightShadowMap;
 
 uniform vec3 viewPos;
 uniform vec3 lightPos;
@@ -30,22 +33,33 @@ float pcf_dirLight(vec3 projCoords, float i_bias)
 {
 	float currentDepth = projCoords.z;
 	float shadow = 0;
+	float numOfSample = 0;
 	vec2 texelSize = 1.0/textureSize(tex_shadowMap, 0);
-	for(int x = -PCF_filterWidth; x <= PCF_filterWidth; x++)
+	for(int x = -width_pcfFiltering; x <= width_pcfFiltering; x++)
 	{
-		for(int y = -PCF_filterWidth; y <= PCF_filterWidth; y++)
+		for(int y = -width_pcfFiltering; y <= width_pcfFiltering; y++)
 		{
 			float pcfDepth = texture(tex_shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-        	shadow += currentDepth - i_bias > pcfDepth ? 1.0 : 0.0;  
+        	shadow += currentDepth - i_bias > pcfDepth ? 1.0 : 0.0; 
+			numOfSample += 1.0;
 		}
 	}
-	shadow /= (PCF_filterWidth * PCF_filterWidth);
+	shadow /= numOfSample;
 	return shadow;
 }
 
-float blockersSearch_dirLight()
+float findBlockerDistance_dirLight(vec3 projCoords)
 {
-  return 0;
+	float numOfSample = 0;
+	vec2 texelSize = 1.0/textureSize(tex_shadowMap, 0);
+	for(int x = -width_blockerSearch; x <= width_blockerSearch; x++)
+	{
+		for(int y = -width_blockerSearch; y <= width_blockerSearch; y++)
+		{
+			numOfSample += 1.0;
+		}
+	}
+	return 0;
 }
 
 float penumbra_Estimate_dirLight()
@@ -80,7 +94,7 @@ void main()
 	vec3 specular = specularColor * spec;
 
 	// Calulate shadow
-	float shadow = receiveShadow == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, 0.001);
+	float shadow = receiveShadow == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, bias_dirLightShadowMap);
 	vec3 lighting = ambient + (1-shadow) *(diffuse + specular);
 	o_color = vec4(lighting, 1);
 }

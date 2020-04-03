@@ -293,20 +293,20 @@ void InitializeSkyBox()
 
 void InitializeMaterial( cyTriMesh& i_mesh, cyGLSLProgram& i_shaderProgram )
 {
-	if (i_mesh.NM() > 0)
-	{
-		i_shaderProgram.Bind();
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), i_mesh.M( 0 ).Kd[0], i_mesh.M( 0 ).Kd[1], i_mesh.M( 0 ).Kd[2] );
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), i_mesh.M( 0 ).Ka[0], i_mesh.M( 0 ).Ka[1], i_mesh.M( 0 ).Ka[2] );
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), i_mesh.M( 0 ).Ks[0], i_mesh.M( 0 ).Ks[1], i_mesh.M( 0 ).Ks[2] );
-	}
-	else
-	{
-		i_shaderProgram.Bind();
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), 0.5f, 0.5, 0.5f );
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), 0.5f, 0.5f, 0.5f );
-		glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), 0.80099994f, 0.80099994f, 0.80099994f );
-	}
+	//if (i_mesh.NM() > 0)
+	//{
+	//	i_shaderProgram.Bind();
+	//	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), i_mesh.M( 0 ).Kd[0], i_mesh.M( 0 ).Kd[1], i_mesh.M( 0 ).Kd[2] );
+	//	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), i_mesh.M( 0 ).Ka[0], i_mesh.M( 0 ).Ka[1], i_mesh.M( 0 ).Ka[2] );
+	//	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), i_mesh.M( 0 ).Ks[0], i_mesh.M( 0 ).Ks[1], i_mesh.M( 0 ).Ks[2] );
+	//}
+	//else
+	//{
+	i_shaderProgram.Bind();
+	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "diffuseColor" ), 0.5f, 0.5, 0.5f );
+	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "ambientColor" ), 0.5f, 0.5f, 0.5f );
+	glUniform3f( glGetUniformLocation( i_shaderProgram.GetID(), "specularColor" ), 0.80099994f, 0.80099994f, 0.80099994f );
+	//}
 }
 
 void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
@@ -547,19 +547,19 @@ void RenderScene( bool i_bDrawShdow = false )
 	}
 
 	g_sp_shadowMesh.Bind();
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap" ), 0 );
 	if (i_bDrawShdow)
 	{
-		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap" ), 0 );
+		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 1 );
+	}
+	else
+	{
+		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 0 );
 	}
 
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 0 );
 	// Draw the plane 
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-		if (i_bDrawShdow)
-		{
-			glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 1 );
-		}
 		glBindVertexArray( VAO_plane );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
@@ -569,10 +569,6 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
 		glBindVertexArray( VAO );
-		if (i_bDrawShdow)
-		{
-			glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 1 );
-		}
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
 		assert( glGetError() == GL_NO_ERROR );
 		glBindVertexArray( 0 );
@@ -884,6 +880,7 @@ int main( int argc, char* argv[] )
 		fprintf( stderr, "Initialized GLFW failed\n" );
 		return -1;
 	}
+
 	/* Create a windowed mode window and its OpenGL context */
 	pWindow = glfwCreateWindow( width_screen, height_screen, "Hello World", NULL, NULL );
 	if (!pWindow)
@@ -891,39 +888,43 @@ int main( int argc, char* argv[] )
 		glfwTerminate();
 		return -1;
 	}
+
 	glfwWindowHint( GLFW_DEPTH_BITS, GLFW_TRUE );
 	// Register the mouse and keyboard callback.
 	glfwSetMouseButtonCallback( pWindow, MouseButtonCallback );
 	glfwSetKeyCallback( pWindow, KeyboardCallback );
 	/* Make the window's context current */
 	glfwMakeContextCurrent( pWindow );
-
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
 	{
 		/* Problem: glewInit failed, something is seriously wrong. */
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
+
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
 	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_sp_shadowMesh );
 	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_sp_shadowPass );
-
 	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
+
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMaterial( g_objMesh, g_sp_shadowMesh );
 
 	CompileShaders( path_vertexShader_quad, path_fragmentShader_shadowMap, g_sp_shadowMap );
 	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
 	InitializeDepthMap( g_tex_renderDepth );
+
 	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
 	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
 
 	g_sp_shadowMesh.Bind();
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "PCF_filterWidth" ), 4);
-
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_pcfFiltering" ), 4 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "width_blockerSearch" ), 4);
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
+	assert( glGetError() != GL_NO_ERROR );
 	InitializeView();
 
 	while (!glfwWindowShouldClose( pWindow ))
