@@ -208,7 +208,6 @@ namespace
 		io_tex.SetFilteringMode( GL_NEAREST, GL_NEAREST );
 		io_tex.SetWrappingMode( GL_CLAMP );
 	}
-
 	void LoadTextureData( const char* i_texturePath, std::vector<unsigned char>& io_data, unsigned int& io_width, unsigned int& io_height )
 	{
 		io_data.clear();
@@ -637,7 +636,6 @@ void GenerateShadowMap()
 
 void Display()
 {
-
 	// Render the scene to the shadow map from the light perspective
 	{
 		g_tex_renderDepth.Bind();
@@ -956,8 +954,8 @@ int main( int argc, char* argv[] )
 	g_sp_shadowMesh.Bind();
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_pcfFiltering" ), g_num_pcfFilteringSamples );
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_blockerSearch" ), g_num_blockerSearchSamples );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.003f );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 2.0f );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 1.5f );
 	CheckGLError();
 
 	InitializeView();
