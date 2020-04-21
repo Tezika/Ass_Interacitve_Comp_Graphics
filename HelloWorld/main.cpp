@@ -77,8 +77,8 @@ float light_angle_pitch = 0.0f;
 float g_dis_lightToTarget = 60.0f;
 float g_dis_cameraToTarget = 60.0f;
 
-float width_screen = 640;
-float height_screen = 480;
+float g_width_screen = 640;
+float g_height_screen = 480;
 
 float width_shadow = 1024;
 float height_shadow = 1024;
@@ -359,7 +359,7 @@ void InitializeRenderTexture( cyGLRenderTexture2D& i_rtt )
 	i_rtt.SetTextureFilteringMode( GL_LINEAR, GL_LINEAR );
 	i_rtt.BuildTextureMipmaps();
 	i_rtt.SetTextureMaxAnisotropy();
-	if (!i_rtt.Resize( 4, width_screen, height_screen ))
+	if (!i_rtt.Resize( 4, g_width_screen, g_height_screen ))
 	{
 		fprintf( stderr, "Cannot resize the renderToTexture." );
 		assert( false );
@@ -644,6 +644,7 @@ void GenerateShadowMap()
 
 void Display()
 {
+	glViewport( 0, 0, g_width_screen, g_height_screen );
 	// Render the scene to the shadow map from the light perspective
 	{
 		g_tex_renderDepth.Bind();
@@ -668,7 +669,7 @@ void UpdateCamera()
 
 	auto mat_cameraView = GetLookAtMatrix( g_cameraPosInWorld, g_target_camera, cyVec3f( 0, 1.0, 0 ) );
 	auto mat_perspective = cyMatrix4f( 1.0f );
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), width_screen / height_screen, 5.0f, 1000.0f );
+	mat_perspective.SetPerspective( glm::radians( 60.0f ), g_width_screen / g_height_screen, 5.0f, 1000.0f );
 
 	g_sp_shadowMesh.Bind();
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_view" ), 1, GL_FALSE, mat_cameraView.cell );
@@ -730,66 +731,6 @@ void UpdateModels()
 	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
 	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMap.GetID(), "mat_rttRot" ), 1, GL_FALSE, mat_quad_rot.cell );
 	glUniform1f( glGetUniformLocation( g_sp_shadowMap.GetID(), "dis" ), 1.0f );
-}
-
-void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
-{
-	assert( i_pWindow );
-	if (i_key == GLFW_KEY_F6 && i_action == GLFW_PRESS)
-	{
-		//CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
-	}
-	if (i_key == GLFW_KEY_LEFT_CONTROL)
-	{
-		if (i_action == GLFW_PRESS)
-		{
-			bControlTheLight = true;
-		}
-		else if (i_action == GLFW_RELEASE)
-		{
-			bControlTheLight = false;
-		}
-	}
-}
-
-void MouseMoveCallback(GLFWwindow* i_pWindow, double i_x, double i_y)
-{
-	TwMouseMotion( int( i_x ), int( i_y ) );
-}
-
-void MouseButtonCallback( GLFWwindow* i_pWindow, int i_button, int i_action, int i_mods )
-{
-	assert( i_pWindow );
-	if (TwEventMouseButtonGLFW( i_button, i_action ))
-		return;
-
-	if (i_button == GLFW_MOUSE_BUTTON_LEFT)
-	{
-		if (i_action == GLFW_PRESS)
-		{
-			left_mouseBtn_drag = true;
-		}
-		else if (i_action == GLFW_RELEASE)
-		{
-			left_mouseBtn_drag = false;
-		}
-	}
-	if (i_button == GLFW_MOUSE_BUTTON_RIGHT)
-	{
-		if (i_action == GLFW_PRESS)
-		{
-			right_mouseBtn_drag = true;
-		}
-		else if (i_action == GLFW_RELEASE)
-		{
-			right_mouseBtn_drag = false;
-		}
-	}
-}
-
-void CharCallback( GLFWwindow* i_pWindow, unsigned int i_key )
-{
-	TwEventCharGLFW( i_key, GLFW_PRESS );
 }
 
 void UpdateKeyboardIput()
@@ -912,6 +853,75 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 }
 #pragma endregion Update
 
+#pragma region Callbacks
+void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_action, int i_mods )
+{
+	assert( i_pWindow );
+	if (i_key == GLFW_KEY_F6 && i_action == GLFW_PRESS)
+	{
+		//CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_meshShaderProgram );
+	}
+	if (i_key == GLFW_KEY_LEFT_CONTROL)
+	{
+		if (i_action == GLFW_PRESS)
+		{
+			bControlTheLight = true;
+		}
+		else if (i_action == GLFW_RELEASE)
+		{
+			bControlTheLight = false;
+		}
+	}
+}
+
+void MouseMoveCallback( GLFWwindow* i_pWindow, double i_x, double i_y )
+{
+	TwMouseMotion( int( i_x ), int( i_y ) );
+}
+
+void MouseButtonCallback( GLFWwindow* i_pWindow, int i_button, int i_action, int i_mods )
+{
+	assert( i_pWindow );
+	if (TwEventMouseButtonGLFW( i_button, i_action ))
+		return;
+
+	if (i_button == GLFW_MOUSE_BUTTON_LEFT)
+	{
+		if (i_action == GLFW_PRESS)
+		{
+			left_mouseBtn_drag = true;
+		}
+		else if (i_action == GLFW_RELEASE)
+		{
+			left_mouseBtn_drag = false;
+		}
+	}
+	if (i_button == GLFW_MOUSE_BUTTON_RIGHT)
+	{
+		if (i_action == GLFW_PRESS)
+		{
+			right_mouseBtn_drag = true;
+		}
+		else if (i_action == GLFW_RELEASE)
+		{
+			right_mouseBtn_drag = false;
+		}
+	}
+}
+
+void CharCallback( GLFWwindow* i_pWindow, unsigned int i_key )
+{
+	TwEventCharGLFW( i_key, GLFW_PRESS );
+}
+
+void WindowSizeCallback( GLFWwindow* i_pWindow, int i_width, int i_height )
+{
+	g_width_screen = i_width;
+	g_height_screen = i_height;
+	TwWindowSize( i_width, i_height );
+}
+
+
 int main( int argc, char* argv[] )
 {
 	if (argc < 2)
@@ -930,7 +940,7 @@ int main( int argc, char* argv[] )
 	}
 
 	/* Create a windowed mode window and its OpenGL context */
-	pWindow = glfwCreateWindow( width_screen, height_screen, "Hello World", NULL, NULL );
+	pWindow = glfwCreateWindow( g_width_screen, g_height_screen, "FP_PCSS", NULL, NULL );
 	if (!pWindow)
 	{
 		glfwTerminate();
@@ -943,6 +953,7 @@ int main( int argc, char* argv[] )
 	glfwSetKeyCallback( pWindow, KeyboardCallback );
 	glfwSetCharCallback( pWindow, CharCallback );
 	glfwSetCursorPosCallback( pWindow, MouseMoveCallback );
+	glfwSetWindowSizeCallback( pWindow, WindowSizeCallback );
 	/* Make the window's context current */
 	glfwMakeContextCurrent( pWindow );
 
@@ -957,7 +968,7 @@ int main( int argc, char* argv[] )
 	TwInit( TW_OPENGL, NULL );
 	auto bar0 = TwNewBar( "Parameters" );
 	TwDefine( " Parameters position='0 0' size='300 256' " );
-	TwWindowSize( width_screen, height_screen );
+	TwWindowSize( g_width_screen, g_height_screen );
 
 	TwAddVarRW( bar0, "Number_PCFFiltering_Samples", TW_TYPE_INT32, &g_num_pcfFilteringSamples, "step=1 group=PCSS" );
 	TwAddVarRW( bar0, "Number_Blockers_Search", TW_TYPE_INT32, &g_num_blockerSearchSamples, "step=1 group=PCSS" );
