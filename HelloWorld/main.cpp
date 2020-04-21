@@ -18,8 +18,11 @@
 #define MIN_NUM_SAMPLES 4
 #define MAX_NUM_SAMPLES 32
 
-GLuint VAO;
-GLuint VBO;
+GLuint VAO_teapot;
+GLuint VBO_teapot;
+
+GLuint VAO_sphere;
+GLuint VBO_sphere;
 
 GLuint VAO_plane;
 GLuint VBO_plane;
@@ -43,7 +46,8 @@ cyGLSLProgram g_sp_shadowPass;
 cyGLSLProgram g_sp_shadowMesh;
 cyGLSLProgram g_sp_lightMesh;
 
-cyTriMesh g_objMesh;
+cyTriMesh g_objMesh_teapot;
+cyTriMesh g_objMesh_sphere;
 cyTriMesh g_planeMesh;
 cyTriMesh g_lightMesh;
 cyVec3f g_dir_targetToCamera;
@@ -51,21 +55,20 @@ cyVec3f g_dir_targetTolight;
 cyVec3f g_target_camera;
 cyVec3f g_target_light;
 
-cyMatrix4f g_mat_model = cyMatrix4f( 1.0f );
+cyMatrix4f g_mat_teapot = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_plane = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_light = cyMatrix4f( 1.0f );
+cyMatrix4f g_mat_sphere = cyMatrix4f( 1.0f );
 
 bool bControlTheLight = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
 
-float camera_moveSpeed_perframe = 0.05f;
-
-cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 30.0f, 40.0f );
+cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 70.0f, 40.0f );
 cyVec3f g_cameraPosInWorld = cyVec3f( 40.0f, 100.0f, 40.0f );
 
-float g_moveSpeed = 20;
+float g_moveSpeed = 50;
 float g_rotate_yaw = 60;
 float g_rotate_pitch = 50;
 
@@ -83,8 +86,8 @@ float g_height_screen = 480;
 
 float g_light_size = 1.5f;
 
-float width_shadow = 1024;
-float height_shadow = 1024;
+float width_shadow = 640;
+float height_shadow = 480;
 
 constexpr char const* path_vertexShader_mesh = "content/shaders/vertex_mesh.shader";
 constexpr char const* path_fragmentShader_mesh = "content/shaders/fragment_mesh.shader";
@@ -563,8 +566,8 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 
 void InitializeView()
 {
-	g_target_camera = ( g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin() ) / 2;
-	g_target_light = ( g_objMesh.GetBoundMax() + g_objMesh.GetBoundMin() ) / 2;
+	g_target_camera = ( g_objMesh_teapot.GetBoundMax() + g_objMesh_teapot.GetBoundMin() ) / 2;
+	g_target_light = ( g_objMesh_teapot.GetBoundMax() + g_objMesh_teapot.GetBoundMin() ) / 2;
 
 	g_dir_targetToCamera = ( g_cameraPosInWorld - g_target_camera ).GetNormalized();
 	g_dir_targetTolight = ( g_lightPosInWorld - g_target_light ).GetNormalized();
@@ -572,8 +575,6 @@ void InitializeView()
 	g_dis_cameraToTarget = ( g_cameraPosInWorld - g_target_camera ).Length();
 	g_dis_lightToTarget = ( g_lightPosInWorld - g_target_light ).Length();
 }
-
-
 
 #pragma endregion Initialization
 
@@ -614,9 +615,16 @@ void RenderScene( bool i_bDrawShdow = false )
 	}
 	// Draw the teapot
 	{
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
-		glBindVertexArray( VAO );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_teapot.cell );
+		glBindVertexArray( VAO_teapot );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_teapot.NF() );
+		glBindVertexArray( 0 );
+	}
+	// Draw the sphere
+	{
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_sphere.cell );
+		glBindVertexArray( VAO_sphere );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_sphere.NF() );
 		glBindVertexArray( 0 );
 	}
 	CheckGLError();
@@ -628,9 +636,16 @@ void GenerateShadowMap()
 	g_sp_shadowPass.Bind();
 	// Draw the teapot
 	{
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_model.cell );
-		glBindVertexArray( VAO );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh.NF() );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_teapot.cell );
+		glBindVertexArray( VAO_teapot );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_teapot.NF() );
+		glBindVertexArray( 0 );
+	}
+	// Draw the sphere
+	{
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_sphere.cell );
+		glBindVertexArray( VAO_sphere );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_sphere.NF() );
 		glBindVertexArray( 0 );
 	}
 	// Draw the plane 
@@ -699,8 +714,8 @@ void UpdateLight()
 
 	auto mat_perspective = cyMatrix4f( 1.0f );
 	float near_plane = 1.0f;
-	float far_plane = 200.0f;
-	mat_perspective.SetPerspective( glm::radians( 60.0f ), width_shadow / height_shadow, near_plane, far_plane );
+	float far_plane = 500.0f;
+	mat_perspective.SetPerspective( glm::radians( 30.0f ), width_shadow / height_shadow, near_plane, far_plane );
 
 	auto mat_lightSpace = mat_perspective * mat_lightSpace_view;
 
@@ -724,7 +739,8 @@ void UpdateLight()
 void UpdateModels()
 {
 	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
-	g_mat_model.SetTranslation( cyVec3f( 0, 10, 0 ) );
+	g_mat_teapot.SetTranslation( cyVec3f( 0, 10, 0 ) );
+	g_mat_sphere.SetTranslation( cyVec3f( 10, 40, 10 ) );
 
 	g_sp_shadowMap.Bind();
 	auto mat_quad_rot = cyMatrix4f( 1.0f );
@@ -1012,7 +1028,6 @@ int main( int argc, char* argv[] )
 	/* Make the window's context current */
 	glfwMakeContextCurrent( pWindow );
 
-
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
 	{
@@ -1028,10 +1043,11 @@ int main( int argc, char* argv[] )
 	CompileShaders( path_vertexShader_mesh, path_fragmentShader_mesh, g_sp_lightMesh );
 	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_sp_shadowMesh );
 	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_sp_shadowPass );
-	InitializeMesh( argv[1], g_objMesh, VAO, VBO );
 
+	InitializeMesh( argv[1], g_objMesh_teapot, VAO_teapot, VBO_teapot );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
-	InitializeMaterial( g_objMesh, g_sp_shadowMesh );
+	InitializeMesh( "sphere.obj", g_objMesh_sphere, VAO_sphere, VBO_sphere );
+	InitializeMaterial( g_objMesh_teapot, g_sp_shadowMesh );
 
 	CompileShaders( path_vertexShader_quad, path_fragmentShader_shadowMap, g_sp_shadowMap );
 	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
@@ -1074,8 +1090,10 @@ int main( int argc, char* argv[] )
 	TwTerminate();
 	// Release buffers and the shader program.
 	{
-		glDeleteVertexArrays( 1, &VAO );
-		glDeleteBuffers( 1, &VBO );
+		glDeleteVertexArrays( 1, &VAO_teapot );
+		glDeleteBuffers( 1, &VBO_teapot );
+		glDeleteVertexArrays( 1, &VAO_sphere );
+		glDeleteBuffers( 1, &VBO_sphere );
 		glDeleteVertexArrays( 1, &VAO_plane );
 		glDeleteBuffers( 1, &VBO_plane );
 		CheckGLError();
