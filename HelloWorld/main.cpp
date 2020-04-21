@@ -570,6 +570,11 @@ void InitializeView()
 	g_dis_lightToTarget = ( g_lightPosInWorld - g_target_light ).Length();
 }
 
+void InitializeTweakAntBar()
+{
+
+}
+
 #pragma endregion Initialization
 
 #pragma region
@@ -747,9 +752,17 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 	}
 }
 
+void MouseMoveCallback(GLFWwindow* i_pWindow, double i_x, double i_y)
+{
+	TwMouseMotion( int( i_x ), int( i_y ) );
+}
+
 void MouseButtonCallback( GLFWwindow* i_pWindow, int i_button, int i_action, int i_mods )
 {
 	assert( i_pWindow );
+	if (TwEventMouseButtonGLFW( i_button, i_action ))
+		return;
+
 	if (i_button == GLFW_MOUSE_BUTTON_LEFT)
 	{
 		if (i_action == GLFW_PRESS)
@@ -772,6 +785,11 @@ void MouseButtonCallback( GLFWwindow* i_pWindow, int i_button, int i_action, int
 			right_mouseBtn_drag = false;
 		}
 	}
+}
+
+void CharCallback( GLFWwindow* i_pWindow, unsigned int i_key )
+{
+	TwEventCharGLFW( i_key, GLFW_PRESS );
 }
 
 void UpdateKeyboardIput()
@@ -923,8 +941,12 @@ int main( int argc, char* argv[] )
 	// Register the mouse and keyboard callback.
 	glfwSetMouseButtonCallback( pWindow, MouseButtonCallback );
 	glfwSetKeyCallback( pWindow, KeyboardCallback );
+	glfwSetCharCallback( pWindow, CharCallback );
+	glfwSetCursorPosCallback( pWindow, MouseMoveCallback );
 	/* Make the window's context current */
 	glfwMakeContextCurrent( pWindow );
+
+
 	GLenum err = glewInit();
 	if (GLEW_OK != err)
 	{
@@ -933,11 +955,13 @@ int main( int argc, char* argv[] )
 	}
 
 	TwInit( TW_OPENGL, NULL );
-	auto bar0 = TwNewBar( "Global" );
-	TwDefine( " Global position='10 10' size='400 400' " );
-	TwWindowSize( 400, 400 );
+	auto bar0 = TwNewBar( "Parameters" );
+	TwDefine( " Parameters position='0 0' size='300 256' " );
+	TwWindowSize( width_screen, height_screen );
 
-	TwAddVarRW( bar0, "NameOfMyVariable", TW_TYPE_INT32, &tw_test, "" );
+	TwAddVarRW( bar0, "Number_PCFFiltering_Samples", TW_TYPE_INT32, &g_num_pcfFilteringSamples, "step=1 group=PCSS" );
+	TwAddVarRW( bar0, "Number_Blockers_Search", TW_TYPE_INT32, &g_num_blockerSearchSamples, "step=1 group=PCSS" );
+
 
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
