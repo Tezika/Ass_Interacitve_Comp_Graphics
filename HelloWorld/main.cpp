@@ -81,6 +81,8 @@ float g_dis_cameraToTarget = 60.0f;
 float g_width_screen = 640;
 float g_height_screen = 480;
 
+float g_light_size = 1.5f;
+
 float width_shadow = 1024;
 float height_shadow = 1024;
 
@@ -950,12 +952,14 @@ void TW_CALL GetNumPCFSamplesCallback( void* i_pValue, void* i_pClientData )
 
 void TW_CALL SetLightSizeCallback( const void* i_pValue, void* i_pClientData )
 {
-
+	g_light_size = *static_cast<const float*>( i_pValue );
+	g_sp_shadowMesh.Bind();
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), g_light_size );
 }
 
 void TW_CALL GetLigthtSizeCallback( void* i_pValue, void* i_pClientData )
 {
-
+	*static_cast<float*>( i_pValue ) = g_light_size;
 }
 
 #pragma endregion Callbacks
@@ -969,9 +973,8 @@ void InitializeTweakAntBar()
 	std::string definitionStr = "min=" + std::to_string( MIN_NUM_SAMPLES ) + " max=" + std::to_string( MAX_NUM_SAMPLES ) + " group=PCSS";
 	TwAddVarCB( newBar, "Blocker Search Samples", TW_TYPE_INT32, SetNumblockerSearchSamplesCallbck, GetNumBlockerSearchSamplesCallback, 0, definitionStr.c_str() );
 	TwAddVarCB( newBar, "PCF Samples", TW_TYPE_INT32, SetNumPCFSamplesCallback, GetNumPCFSamplesCallback, 0, definitionStr.c_str() );
-	definitionStr = "group=light";
-	TwAddVarCB( newBar, "Light weight/size", TW_TYPE_FLOAT, SetNumPCFSamplesCallback, GetNumPCFSamplesCallback, 0, definitionStr.c_str() );
-
+	definitionStr = "step=0.2 group=Lights";
+	TwAddVarCB( newBar, "Light Size", TW_TYPE_FLOAT, SetLightSizeCallback, GetLigthtSizeCallback, 0, definitionStr.c_str() );
 }
 
 int main( int argc, char* argv[] )
@@ -1045,7 +1048,7 @@ int main( int argc, char* argv[] )
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_pcfFiltering" ), g_num_pcfFilteringSamples );
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_blockerSearch" ), g_num_blockerSearchSamples );
 	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), 1.5f );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), g_light_size );
 	CheckGLError();
 
 	InitializeView();
@@ -1053,7 +1056,6 @@ int main( int argc, char* argv[] )
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
-
 		UpdateMouseInput( pWindow );
 
 		UpdateCamera();
