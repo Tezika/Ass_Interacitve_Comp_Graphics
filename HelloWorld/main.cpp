@@ -13,9 +13,12 @@
 #include <vector>
 #include "lodepng.h"
 #include "PoissonGenerator.h"
+#include <AntTweakBar/AntTweakBar.h>
 
 GLuint VAO;
 GLuint VBO;
+
+int tw_test;
 
 GLuint VAO_plane;
 GLuint VBO_plane;
@@ -929,6 +932,13 @@ int main( int argc, char* argv[] )
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
 
+	TwInit( TW_OPENGL, NULL );
+	auto bar0 = TwNewBar( "Global" );
+	TwDefine( " Global position='10 10' size='400 400' " );
+	TwWindowSize( 400, 400 );
+
+	TwAddVarRW( bar0, "NameOfMyVariable", TW_TYPE_INT32, &tw_test, "" );
+
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 
@@ -963,6 +973,7 @@ int main( int argc, char* argv[] )
 
 	while (!glfwWindowShouldClose( pWindow ))
 	{
+
 		UpdateMouseInput( pWindow );
 
 		UpdateCamera();
@@ -970,11 +981,15 @@ int main( int argc, char* argv[] )
 		UpdateModels();
 
 		Display();
+
+		// Draw the tw bars.
+		TwDraw();
 		/* Swap front and back buffers */
 		glfwSwapBuffers( pWindow );
 		/* Poll for and process events */
 		glfwPollEvents();
 	}
+	TwTerminate();
 	// Release buffers and the shader program.
 	{
 		glDeleteVertexArrays( 1, &VAO );

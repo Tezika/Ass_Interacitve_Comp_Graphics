@@ -128,6 +128,7 @@
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\AntTweakBar.dll" "$(TargetDir)"
 xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
     </PostBuildEvent>
     <PostBuildEvent>
@@ -148,7 +149,7 @@ xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;glmd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;glmd.lib;AntTweakBar64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
@@ -156,6 +157,7 @@ xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glmd.dll" "$(TargetDir)"
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\AntTweakBar64.dll" "$(TargetDir)"
 xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
     </PostBuildEvent>
     <PostBuildEvent>
@@ -188,6 +190,7 @@ xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\AntTweakBar.dll" "$(TargetDir)"
 xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
     </PostBuildEvent>
     <PostBuildEvent>
@@ -212,7 +215,7 @@ xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;glm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;glfw3dll.lib;glew32.lib;glm.lib;AntTweakBar64.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <PerUserRedirection>true</PerUserRedirection>
       <AdditionalLibraryDirectories>$(SolutionDir)Libs\lib_$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
@@ -220,6 +223,7 @@ xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
       <Command>copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glfw3.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glew32.dll" "$(TargetDir)"
 copy "$(SolutionDir)Dlls\dll_$(platformTarget)\glm.dll" "$(TargetDir)"
+copy "$(SolutionDir)Dlls\dll_$(platformTarget)\AntTweakBar64.dll" "$(TargetDir)"
 xcopy /i /r /y /e "$(ProjectDir)content" "$(TargetDir)content" </Command>
     </PostBuildEvent>
     <PostBuildEvent>
