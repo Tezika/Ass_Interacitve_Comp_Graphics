@@ -15,10 +15,11 @@
 #include "PoissonGenerator.h"
 #include <AntTweakBar/AntTweakBar.h>
 
+#define MIN_NUM_SAMPLES 4
+#define MAX_NUM_SAMPLES 32
+
 GLuint VAO;
 GLuint VBO;
-
-int tw_test;
 
 GLuint VAO_plane;
 GLuint VBO_plane;
@@ -570,10 +571,7 @@ void InitializeView()
 	g_dis_lightToTarget = ( g_lightPosInWorld - g_target_light ).Length();
 }
 
-void InitializeTweakAntBar()
-{
 
-}
 
 #pragma endregion Initialization
 
@@ -921,6 +919,60 @@ void WindowSizeCallback( GLFWwindow* i_pWindow, int i_width, int i_height )
 	TwWindowSize( i_width, i_height );
 }
 
+void TW_CALL SetNumblockerSearchSamplesCallbck( const void* i_pValue, void* i_pClientData )
+{
+	g_num_blockerSearchSamples = *static_cast<const size_t*>( i_pValue );
+	g_num_blockerSearchSamples = glm::clamp<size_t>( g_num_blockerSearchSamples, MIN_NUM_SAMPLES, MAX_NUM_SAMPLES );
+	CreatePoissonDiscDistribution( g_tex_possion_distribution1, g_num_blockerSearchSamples );
+	g_sp_shadowMesh.Bind();
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_blockerSearch" ), g_num_blockerSearchSamples );
+
+}
+
+void TW_CALL GetNumBlockerSearchSamplesCallback( void* i_pValue, void* i_pClientData )
+{
+	*static_cast<size_t*>( i_pValue ) = g_num_blockerSearchSamples;
+}
+
+void TW_CALL SetNumPCFSamplesCallback( const void* i_pValue, void* i_pClientData )
+{
+	g_num_pcfFilteringSamples = *static_cast<const size_t*>( i_pValue );
+	g_num_pcfFilteringSamples = glm::clamp<size_t>( g_num_pcfFilteringSamples, MIN_NUM_SAMPLES, MAX_NUM_SAMPLES );
+	CreatePoissonDiscDistribution( g_tex_possion_distribution0, g_num_pcfFilteringSamples );
+	g_sp_shadowMesh.Bind();
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_pcfFiltering" ), g_num_pcfFilteringSamples );
+}
+
+void TW_CALL GetNumPCFSamplesCallback( void* i_pValue, void* i_pClientData )
+{
+	*static_cast<size_t*>( i_pValue ) = g_num_pcfFilteringSamples;
+}
+
+void TW_CALL SetLightSizeCallback( const void* i_pValue, void* i_pClientData )
+{
+
+}
+
+void TW_CALL GetLigthtSizeCallback( void* i_pValue, void* i_pClientData )
+{
+
+}
+
+#pragma endregion Callbacks
+
+void InitializeTweakAntBar()
+{
+	TwInit( TW_OPENGL, NULL );
+	auto newBar = TwNewBar( "Parameters" );
+	TwDefine( " Parameters position='0 0' size='300 256' " );
+	TwWindowSize( g_width_screen, g_height_screen );
+	std::string definitionStr = "min=" + std::to_string( MIN_NUM_SAMPLES ) + " max=" + std::to_string( MAX_NUM_SAMPLES ) + " group=PCSS";
+	TwAddVarCB( newBar, "Blocker Search Samples", TW_TYPE_INT32, SetNumblockerSearchSamplesCallbck, GetNumBlockerSearchSamplesCallback, 0, definitionStr.c_str() );
+	TwAddVarCB( newBar, "PCF Samples", TW_TYPE_INT32, SetNumPCFSamplesCallback, GetNumPCFSamplesCallback, 0, definitionStr.c_str() );
+	definitionStr = "group=light";
+	TwAddVarCB( newBar, "Light weight/size", TW_TYPE_FLOAT, SetNumPCFSamplesCallback, GetNumPCFSamplesCallback, 0, definitionStr.c_str() );
+
+}
 
 int main( int argc, char* argv[] )
 {
@@ -965,14 +1017,7 @@ int main( int argc, char* argv[] )
 		fprintf( stderr, "Initialized GLEW failed, Error: %s\n", glewGetErrorString( err ) );
 	}
 
-	TwInit( TW_OPENGL, NULL );
-	auto bar0 = TwNewBar( "Parameters" );
-	TwDefine( " Parameters position='0 0' size='300 256' " );
-	TwWindowSize( g_width_screen, g_height_screen );
-
-	TwAddVarRW( bar0, "Number_PCFFiltering_Samples", TW_TYPE_INT32, &g_num_pcfFilteringSamples, "step=1 group=PCSS" );
-	TwAddVarRW( bar0, "Number_Blockers_Search", TW_TYPE_INT32, &g_num_blockerSearchSamples, "step=1 group=PCSS" );
-
+	InitializeTweakAntBar();
 
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
