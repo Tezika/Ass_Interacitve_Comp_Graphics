@@ -78,20 +78,12 @@ cyTriMesh g_planeMesh;
 cyTriMesh g_lightMesh_0;
 cyTriMesh g_lightMesh_1;
 
-cyVec3f g_dir_targetToCamera;
-cyVec3f g_dir_targetTolight0;
-cyVec3f g_dir_targetTolight1;
+cyVec3f g_dir_targetToCamera;;
 cyVec3f g_target_camera;
 cyVec3f g_target_light;
 
 cyMatrix4f g_mat_teapot = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_plane = cyMatrix4f( 1.0f );
-
-cyMatrix4f g_mat_light_0 = cyMatrix4f( 1.0f );
-cyMatrix4f g_mat_light_1 = cyMatrix4f( 1.0f );
-
-cyMatrix4f g_mat_lightSpaceTrans_0 = cyMatrix4f( 1.0f );
-cyMatrix4f g_mat_lightSpaceTrans_1 = cyMatrix4f( 1.0f );
 
 cyMatrix4f g_mat_sphere = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_cube = cyMatrix4f( 1.0f );
@@ -102,8 +94,6 @@ bool bControlTheLight1 = false;
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
 
-cyVec3f g_light0PosInWorld = cyVec3f( 0.0f, 0.0f, 40.0f );
-cyVec3f g_light1PosInWorld = cyVec3f( 0.0f, 0.0f, 40.0f );
 cyVec3f g_cameraPosInWorld = cyVec3f( 40.0f, 100.0f, 40.0f );
 
 float g_moveSpeed = 50;
@@ -112,12 +102,6 @@ float g_rotate_pitch = 50;
 
 float rotation_yaw = 2.0f;
 float rotation_pitch = 1.5f;
-
-float g_light0_angle_yaw = 0.0f;
-float g_light0_angle_pitch = 0.0f;
-
-float g_light1_angle_yaw = 0.0f;
-float g_light1_angle_pitch = 0.0f;
 
 float g_dis_lightToTarget = 100.0f;
 float g_dis_cameraToTarget = 60.0f;
@@ -157,8 +141,8 @@ GLuint VAO_cubemap;
 GLuint VBO_cubemap;
 GLuint Tex_cubemap;
 
-int g_num_blockerSearchSamples = 8;
-int g_num_pcfFilteringSamples = 8;
+int g_num_blockerSearchSamples = 16;
+int g_num_pcfFilteringSamples = 16;
 
 const float g_skyboxVertices[] = {
 	// positions          
@@ -819,7 +803,7 @@ void UpdateLight( LightSource& io_lightSource )
 	str_def = str_def_prefix + ".position";
 	glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), str_def.c_str() ), 1, &io_lightSource.lightPos.elem[0] );
 	str_def = str_def_prefix + ".size";
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), str_def.c_str() ), g_light_size );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), str_def.c_str() ), io_lightSource.lightSize );
 	str_def = str_def_prefix + ".bias";
 	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), str_def.c_str() ), io_lightSource.bias_shadowMap );
 	CheckGLError();
@@ -1070,16 +1054,52 @@ void TW_CALL GetNumPCFSamplesCallback( void* i_pValue, void* i_pClientData )
 	*static_cast<size_t*>( i_pValue ) = g_num_pcfFilteringSamples;
 }
 
-void TW_CALL SetLightSizeCallback( const void* i_pValue, void* i_pClientData )
+void TW_CALL SetLightSizeCallback0( const void* i_pValue, void* i_pClientData )
 {
-	g_light_size = *static_cast<const float*>( i_pValue );
+	g_lightSources[0].lightSize = *static_cast<const float*>( i_pValue );
 	g_sp_shadowMesh.Bind();
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), g_light_size );
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSources[0].size" ), g_lightSources[0].lightSize );
 }
 
-void TW_CALL GetLigthtSizeCallback( void* i_pValue, void* i_pClientData )
+void TW_CALL GetLigthtSizeCallback0( void* i_pValue, void* i_pClientData )
 {
-	*static_cast<float*>( i_pValue ) = g_light_size;
+	*static_cast<float*>( i_pValue ) = g_lightSources[0].lightSize;
+}
+
+void TW_CALL SetLightBiasCallback0( const void* i_pValue, void* i_pClientData )
+{
+	g_lightSources[0].bias_shadowMap = *static_cast<const float*>( i_pValue );
+	g_sp_shadowMesh.Bind();
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSources[0].bias" ), g_lightSources[0].bias_shadowMap );
+}
+
+void TW_CALL GetLightBiasCallback0( void* i_pValue, void* i_pClientData )
+{
+	*static_cast<float*>( i_pValue ) = g_lightSources[0].bias_shadowMap;
+}
+
+void TW_CALL SetLightSizeCallback1( const void* i_pValue, void* i_pClientData )
+{
+	g_lightSources[1].lightSize = *static_cast<const float*>( i_pValue );
+	g_sp_shadowMesh.Bind();
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSources[1].size" ), g_lightSources[1].lightSize );
+}
+
+void TW_CALL GetLigthtSizeCallback1( void* i_pValue, void* i_pClientData )
+{
+	*static_cast<float*>( i_pValue ) = g_lightSources[1].lightSize;
+}
+
+void TW_CALL SetLightBiasCallback1( const void* i_pValue, void* i_pClientData )
+{
+	g_lightSources[1].bias_shadowMap = *static_cast<const float*>( i_pValue );
+	g_sp_shadowMesh.Bind();
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSources[1].bias" ), g_lightSources[1].bias_shadowMap );
+}
+
+void TW_CALL GetLightBiasCallback1( void* i_pValue, void* i_pClientData )
+{
+	*static_cast<float*>( i_pValue ) = g_lightSources[1].bias_shadowMap;
 }
 
 #pragma endregion Callbacks
@@ -1093,8 +1113,16 @@ void InitializeTweakAntBar()
 	std::string definitionStr = "min=" + std::to_string( MIN_NUM_SAMPLES ) + " max=" + std::to_string( MAX_NUM_SAMPLES ) + " group=PCSS";
 	TwAddVarCB( newBar, "Blocker Search Samples", TW_TYPE_INT32, SetNumblockerSearchSamplesCallbck, GetNumBlockerSearchSamplesCallback, 0, definitionStr.c_str() );
 	TwAddVarCB( newBar, "PCF Samples", TW_TYPE_INT32, SetNumPCFSamplesCallback, GetNumPCFSamplesCallback, 0, definitionStr.c_str() );
-	definitionStr = "step=0.2 group=Lights";
-	TwAddVarCB( newBar, "Light Size", TW_TYPE_FLOAT, SetLightSizeCallback, GetLigthtSizeCallback, 0, definitionStr.c_str() );
+
+	definitionStr = "step=0.2 group=Light_0";
+	TwAddVarCB( newBar, "Light Size 0", TW_TYPE_FLOAT, SetLightSizeCallback0, GetLigthtSizeCallback0, 0, definitionStr.c_str() );
+	definitionStr = "step=0.001 group=Light_0";
+	TwAddVarCB( newBar, "Light Shadow Map Bias 0", TW_TYPE_FLOAT, SetLightBiasCallback0, GetLightBiasCallback0, 0, definitionStr.c_str() );
+
+	definitionStr = "step=0.2 group=Light_1";
+	TwAddVarCB( newBar, "Light Size 1", TW_TYPE_FLOAT, SetLightSizeCallback1, GetLigthtSizeCallback1, 0, definitionStr.c_str() );
+	definitionStr = "step=0.001 group=Light_1";
+	TwAddVarCB( newBar, "Light Shadow Map Bias 1", TW_TYPE_FLOAT, SetLightBiasCallback1, GetLightBiasCallback1, 0, definitionStr.c_str() );
 }
 
 int main( int argc, char* argv[] )
