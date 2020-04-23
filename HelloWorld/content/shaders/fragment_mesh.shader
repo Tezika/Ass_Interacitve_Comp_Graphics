@@ -29,11 +29,12 @@ uniform vec3 lightPos;
 
 void main()
 {
+	// Blinn - Phong
 	vec3 normal = normalize(normalInterp);
 	vec3 lightDir = normalize(lightPos - fragPos);
 	float diff = max(dot(lightDir,normal), 0.0);
 
-	// Blinn - Phong
+
 	float spec = 0;
 	vec3 viewDir = normalize(-fragPos);
 	vec3 halfDir = normalize(lightPos + viewDir);

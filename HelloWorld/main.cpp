@@ -96,7 +96,8 @@ cyMatrix4f g_mat_lightSpaceTrans_1 = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_sphere = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_cube = cyMatrix4f( 1.0f );
 
-bool bControlTheLight = false;
+bool bControlTheLight0 = false;
+bool bControlTheLight1 = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
@@ -645,10 +646,10 @@ void RenderScene( bool i_bDrawShdow = false )
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh_0.NF() );
 		glBindVertexArray( 0 );
 
-		//glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_light_1.cell );
-		//glBindVertexArray( VAO_light_2 );
-		//glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh_1.NF() );
-		//glBindVertexArray( 0 );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_lightSources[1].mat_light.cell );
+		glBindVertexArray( VAO_light_2 );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh_1.NF() );
+		glBindVertexArray( 0 );
 	}
 
 	g_sp_shadowMesh.Bind();
@@ -730,13 +731,6 @@ void GenerateShadowMap( cyMatrix4f& i_mat_lightSpaceTrans )
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_cube.cell );
 		glBindVertexArray( VAO_cube );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_cube.NF() );
-		glBindVertexArray( 0 );
-	}
-	// Draw the plane 
-	{
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_plane.cell );
-		glBindVertexArray( VAO_plane );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_planeMesh.NF() );
 		glBindVertexArray( 0 );
 	}
 }
@@ -860,9 +854,13 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		auto moveDistance = g_moveSpeed * i_frameTime;
 		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
 		{
-			if (bControlTheLight)
+			if (bControlTheLight0)
 			{
 				g_lightSources[0].disToTarget -= moveDistance;
+			}
+			else if (bControlTheLight1)
+			{
+				g_lightSources[1].disToTarget -= moveDistance;
 			}
 			else
 			{
@@ -872,9 +870,13 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		}
 		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
 		{
-			if (bControlTheLight)
+			if (bControlTheLight0)
 			{
 				g_lightSources[0].disToTarget += moveDistance;
+			}
+			else if (bControlTheLight1)
+			{
+				g_lightSources[1].disToTarget += moveDistance;
 			}
 			else
 			{
@@ -896,9 +898,13 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		// Rotate around yaw
 		if (dis.Dot( cyVec2d( 1, 0 ) ) > 0)
 		{
-			if (bControlTheLight)
+			if (bControlTheLight0)
 			{
 				g_lightSources[0].rotate_angle_yaw -= g_rotate_yaw * i_frameTime;
+			}
+			else if (bControlTheLight1)
+			{
+				g_lightSources[1].rotate_angle_yaw -= g_rotate_yaw * i_frameTime;
 			}
 			else
 			{
@@ -907,9 +913,13 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		}
 		else if (dis.Dot( cyVec2d( 1, 0 ) ) < 0)
 		{
-			if (bControlTheLight)
+			if (bControlTheLight0)
 			{
 				g_lightSources[0].rotate_angle_yaw += g_rotate_yaw * i_frameTime;
+			}
+			else if (bControlTheLight1)
+			{
+				g_lightSources[1].rotate_angle_yaw += g_rotate_yaw * i_frameTime;
 			}
 			else
 			{
@@ -920,9 +930,13 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		// Rotate around the pitch
 		if (dis.Dot( cyVec2d( 0, 1 ) ) > 0)
 		{
-			if (bControlTheLight)
+			if (bControlTheLight0)
 			{
 				g_lightSources[0].rotate_angle_pitch -= g_rotate_pitch * i_frameTime;
+			}
+			else if (bControlTheLight1)
+			{
+				g_lightSources[1].rotate_angle_pitch -= g_rotate_pitch * i_frameTime;
 			}
 			else
 			{
@@ -931,9 +945,13 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		}
 		else if (dis.Dot( cyVec2d( 0, 1 ) ) < 0)
 		{
-			if (bControlTheLight)
+			if (bControlTheLight0)
 			{
 				g_lightSources[0].rotate_angle_pitch += g_rotate_pitch * i_frameTime;
+			}
+			else if (bControlTheLight1)
+			{
+				g_lightSources[1].rotate_angle_pitch += g_rotate_pitch * i_frameTime;
 			}
 			else
 			{
@@ -956,11 +974,22 @@ void KeyboardCallback( GLFWwindow* i_pWindow, int i_key, int i_scancode, int i_a
 	{
 		if (i_action == GLFW_PRESS)
 		{
-			bControlTheLight = true;
+			bControlTheLight0 = true;
 		}
 		else if (i_action == GLFW_RELEASE)
 		{
-			bControlTheLight = false;
+			bControlTheLight0 = false;
+		}
+	}
+	if (i_key == GLFW_KEY_LEFT_SHIFT)
+	{
+		if (i_action == GLFW_PRESS)
+		{
+			bControlTheLight1 = true;
+		}
+		else if (i_action == GLFW_RELEASE)
+		{
+			bControlTheLight1 = false;
 		}
 	}
 }
@@ -1129,7 +1158,7 @@ int main( int argc, char* argv[] )
 	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
 
 	InitializeMesh( "light.obj", g_lightMesh_0, VAO_light_1, VBO_light_1 );
-	InitializeMesh( "light.obj", g_lightMesh_1, VAO_light_2, VBO_light_2 );
+	InitializeMesh( "light_flip.obj", g_lightMesh_1, VAO_light_2, VBO_light_2 );
 	InitializeMaterial( g_lightMesh_0, g_sp_lightMesh );
 
 	CreatePoissonDiscDistribution( g_tex_possion_distribution0, g_num_pcfFilteringSamples );
@@ -1142,8 +1171,6 @@ int main( int argc, char* argv[] )
 	g_sp_shadowMesh.Bind();
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_pcfFiltering" ), g_num_pcfFilteringSamples );
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_blockerSearch" ), g_num_blockerSearchSamples );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "bias_dirLightShadowMap" ), 0.001f );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightSize" ), g_light_size );
 	CheckGLError();
 
 	InitializeView();
@@ -1156,7 +1183,7 @@ int main( int argc, char* argv[] )
 
 		UpdateCamera();
 		UpdateLight( g_lightSources[0] );
-		//UpdateLight( g_light1PosInWorld, g_mat_light_1, g_mat_lightSpaceTrans_1, g_dir_targetTolight1, g_light1_angle_pitch, g_light1_angle_yaw, 1 );
+		UpdateLight( g_lightSources[1] );
 		UpdateModels();
 
 		Display();

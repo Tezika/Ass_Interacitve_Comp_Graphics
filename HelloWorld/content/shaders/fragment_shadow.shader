@@ -32,9 +32,6 @@ uniform vec3 emitColor;
 uniform int receiveShadow;
 uniform int numOfSample_pcfFiltering;
 uniform int numOfSample_blockerSearch;
-uniform float bias_dirLightShadowMap;
-uniform float lightSize;
-uniform float near_plane;
 
 uniform vec3 viewPos;
 
@@ -118,27 +115,40 @@ float calculateShadow(vec4 i_fragPosInLightSpace, sampler2D i_shadowMap, float i
 // Entry Point
 //============
 
-void main()
+vec3 blinnPhongShading(vec3 normal, vec3 viewDir, int i_idx)
 {
-	vec3 normal = normalize(normalInterp);
-	vec3 lightDir = normalize( lightSources[0].position - fragPos);
-	float diff = max(dot(lightDir,normal), 0.0);
+	vec3 lightDir = normalize( lightSources[i_idx].position - fragPos);
+	float diff = max(dot(lightDir, normal), 0.0);
 
 	// Blinn - Phong
 	float spec = 0;
-	vec3 viewDir = normalize( viewPos - fragPos );
-	vec3 halfDir = normalize( lightSources[0].position + viewDir);
+	vec3 halfDir = normalize( lightSources[i_idx].position + viewDir);
 	float specAngle = max(dot(halfDir, normal), 0.0);
 	spec = pow(specAngle, 64.0);
-	vec3 ambient = ambientColor;
+
 	vec3 diffuse = diffuseColor * diff;
 	vec3 specular = specularColor * spec;
 
 	// Calulate shadow
-	texelSize = 1.0/textureSize(tex_shadowMap0, 0);
+	texelSize = 1.0/textureSize(i_idx == 0? tex_shadowMap0: tex_shadowMap1, 0);
 	vec4 fragPosInLightSpace = mat_lightSpaceTransformation0 * fragPos4;
-	float shadowness = receiveShadow == 0 ? 0.0 : calculateShadow(fragPosInLightSpace, tex_shadowMap0, lightSources[0].size, lightSources[0].near_plane, lightSources[0].bias);
-	vec3 lighting = ambient + shadowness *(diffuse + specular);
+	float shadowness = receiveShadow == 0 ? 0.0 : calculateShadow(
+		fragPosInLightSpace, 
+		i_idx == 0? tex_shadowMap0: tex_shadowMap1, 
+		lightSources[i_idx].size, 
+		lightSources[i_idx].near_plane, 
+		lightSources[i_idx].bias
+		);
+	return shadowness * (diffuse + specular);
+}
 
+void main()
+{
+	vec3 normal = normalize( normalInterp );
+	vec3 viewDir = normalize( viewPos - fragPos );
+	vec3 lighting = blinnPhongShading(normal, viewDir, 0); 
+	lighting += blinnPhongShading(normal, viewDir, 1);
+	lighting /= 2;
+	lighting += ambientColor;
 	o_color = vec4(lighting, 1);
 }
