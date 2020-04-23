@@ -24,6 +24,9 @@ GLuint VBO_teapot;
 GLuint VAO_sphere;
 GLuint VBO_sphere;
 
+GLuint VAO_cube;
+GLuint VBO_cube;
+
 GLuint VAO_plane;
 GLuint VBO_plane;
 
@@ -48,6 +51,7 @@ cyGLSLProgram g_sp_lightMesh;
 
 cyTriMesh g_objMesh_teapot;
 cyTriMesh g_objMesh_sphere;
+cyTriMesh g_objMesh_cube;
 cyTriMesh g_planeMesh;
 cyTriMesh g_lightMesh;
 cyVec3f g_dir_targetToCamera;
@@ -59,13 +63,14 @@ cyMatrix4f g_mat_teapot = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_plane = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_light = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_sphere = cyMatrix4f( 1.0f );
+cyMatrix4f g_mat_cube = cyMatrix4f( 1.0f );
 
 bool bControlTheLight = false;
 
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
 
-cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 70.0f, 40.0f );
+cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 100.0f, 40.0f );
 cyVec3f g_cameraPosInWorld = cyVec3f( 40.0f, 100.0f, 40.0f );
 
 float g_moveSpeed = 50;
@@ -627,6 +632,13 @@ void RenderScene( bool i_bDrawShdow = false )
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_sphere.NF() );
 		glBindVertexArray( 0 );
 	}
+	// Draw the cube
+	{
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_cube.cell );
+		glBindVertexArray( VAO_cube );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_cube.NF() );
+		glBindVertexArray( 0 );
+	}
 	CheckGLError();
 }
 
@@ -646,6 +658,13 @@ void GenerateShadowMap()
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_sphere.cell );
 		glBindVertexArray( VAO_sphere );
 		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_sphere.NF() );
+		glBindVertexArray( 0 );
+	}
+	// Draw the cube
+	{
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_cube.cell );
+		glBindVertexArray( VAO_cube );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_objMesh_cube.NF() );
 		glBindVertexArray( 0 );
 	}
 	// Draw the plane 
@@ -713,9 +732,9 @@ void UpdateLight()
 	auto mat_lightSpace_view = GetLookAtMatrix( g_lightPosInWorld, g_target_light, worldUp );
 
 	auto mat_perspective = cyMatrix4f( 1.0f );
-	float near_plane = 1.0f;
+	float near_plane = 1.5f;
 	float far_plane = 500.0f;
-	mat_perspective.SetPerspective( glm::radians( 30.0f ), width_shadow / height_shadow, near_plane, far_plane );
+	mat_perspective.SetPerspective( glm::radians( 45.0f ), width_shadow / height_shadow, near_plane, far_plane );
 
 	auto mat_lightSpace = mat_perspective * mat_lightSpace_view;
 
@@ -739,8 +758,9 @@ void UpdateLight()
 void UpdateModels()
 {
 	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
-	g_mat_teapot.SetTranslation( cyVec3f( 0, 10, 0 ) );
-	g_mat_sphere.SetTranslation( cyVec3f( 10, 40, 10 ) );
+	g_mat_teapot.SetTranslation( cyVec3f( 0, 20, 0 ) );
+	g_mat_sphere.SetTranslation( cyVec3f( 20, 30, 0 ) );
+	g_mat_cube.SetTranslation( cyVec3f( -20, 10, 0 ) );
 
 	g_sp_shadowMap.Bind();
 	auto mat_quad_rot = cyMatrix4f( 1.0f );
@@ -1047,6 +1067,7 @@ int main( int argc, char* argv[] )
 	InitializeMesh( argv[1], g_objMesh_teapot, VAO_teapot, VBO_teapot );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMesh( "sphere.obj", g_objMesh_sphere, VAO_sphere, VBO_sphere );
+	InitializeMesh( "cube.obj", g_objMesh_cube, VAO_cube, VBO_cube );
 	InitializeMaterial( g_objMesh_teapot, g_sp_shadowMesh );
 
 	CompileShaders( path_vertexShader_quad, path_fragmentShader_shadowMap, g_sp_shadowMap );
@@ -1094,6 +1115,8 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &VBO_teapot );
 		glDeleteVertexArrays( 1, &VAO_sphere );
 		glDeleteBuffers( 1, &VBO_sphere );
+		glDeleteVertexArrays( 1, &VAO_cube );
+		glDeleteBuffers( 1, &VBO_cube );
 		glDeleteVertexArrays( 1, &VAO_plane );
 		glDeleteBuffers( 1, &VBO_plane );
 		CheckGLError();
