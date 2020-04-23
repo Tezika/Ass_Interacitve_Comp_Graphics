@@ -70,7 +70,7 @@ bool bControlTheLight = false;
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
 
-cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 100.0f, 40.0f );
+cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 0.0f, 40.0f );
 cyVec3f g_cameraPosInWorld = cyVec3f( 40.0f, 100.0f, 40.0f );
 
 float g_moveSpeed = 50;
@@ -573,6 +573,7 @@ void InitializeView()
 {
 	g_target_camera = ( g_objMesh_teapot.GetBoundMax() + g_objMesh_teapot.GetBoundMin() ) / 2;
 	g_target_light = ( g_objMesh_teapot.GetBoundMax() + g_objMesh_teapot.GetBoundMin() ) / 2;
+	g_lightPosInWorld = g_target_light + cyVec3f( 0, 0, 100 );
 
 	g_dir_targetToCamera = ( g_cameraPosInWorld - g_target_camera ).GetNormalized();
 	g_dir_targetTolight = ( g_lightPosInWorld - g_target_light ).GetNormalized();
@@ -759,7 +760,7 @@ void UpdateModels()
 {
 	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
 	g_mat_teapot.SetTranslation( cyVec3f( 0, 20, 0 ) );
-	g_mat_sphere.SetTranslation( cyVec3f( 20, 30, 0 ) );
+	g_mat_sphere.SetTranslation( cyVec3f( 25, 40, 0 ) );
 	g_mat_cube.SetTranslation( cyVec3f( -20, 10, 0 ) );
 
 	g_sp_shadowMap.Bind();
