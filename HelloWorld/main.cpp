@@ -18,6 +18,23 @@
 #define MIN_NUM_SAMPLES 4
 #define MAX_NUM_SAMPLES 32
 
+struct LightSource
+{
+	float lightSize = 1.5f;
+	cyVec3f lightPos;
+	cyVec3f lightToTargetDir;
+	cyMatrix4f mat_light = cyMatrix4f( 1.0f );
+	cyMatrix4f mat_lightSpaceTransformation = cyMatrix4f( 1.0f );
+	float light_nearPlane;
+	float rotate_angle_pitch;
+	float rotate_angle_yaw;
+	float disToTarget = 100.0;
+	float bias_shadowMap = 0.001f;
+	int idx;
+};
+
+LightSource g_lightSources[2];
+
 GLuint VAO_teapot;
 GLuint VBO_teapot;
 
@@ -30,15 +47,20 @@ GLuint VBO_cube;
 GLuint VAO_plane;
 GLuint VBO_plane;
 
-GLuint VAO_light;
-GLuint VBO_light;
+GLuint VAO_light_1;
+GLuint VBO_light_1;
+
+GLuint VAO_light_2;
+GLuint VBO_light_2;
 
 GLuint VAO_quad;
 GLuint VBO_quad;
 GLuint EBO_quad;
 
 cyGLRenderTexture2D g_rtt_mirror;
-cyGLRenderDepth2D g_tex_renderDepth;
+
+cyGLRenderDepth2D g_tex_shadowMap_0;
+cyGLRenderDepth2D g_tex_shadowMap_1;
 
 cyGLTexture1D g_tex_possion_distribution0;
 cyGLTexture1D g_tex_possion_distribution1;
@@ -53,15 +75,24 @@ cyTriMesh g_objMesh_teapot;
 cyTriMesh g_objMesh_sphere;
 cyTriMesh g_objMesh_cube;
 cyTriMesh g_planeMesh;
-cyTriMesh g_lightMesh;
+cyTriMesh g_lightMesh_0;
+cyTriMesh g_lightMesh_1;
+
 cyVec3f g_dir_targetToCamera;
-cyVec3f g_dir_targetTolight;
+cyVec3f g_dir_targetTolight0;
+cyVec3f g_dir_targetTolight1;
 cyVec3f g_target_camera;
 cyVec3f g_target_light;
 
 cyMatrix4f g_mat_teapot = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_plane = cyMatrix4f( 1.0f );
-cyMatrix4f g_mat_light = cyMatrix4f( 1.0f );
+
+cyMatrix4f g_mat_light_0 = cyMatrix4f( 1.0f );
+cyMatrix4f g_mat_light_1 = cyMatrix4f( 1.0f );
+
+cyMatrix4f g_mat_lightSpaceTrans_0 = cyMatrix4f( 1.0f );
+cyMatrix4f g_mat_lightSpaceTrans_1 = cyMatrix4f( 1.0f );
+
 cyMatrix4f g_mat_sphere = cyMatrix4f( 1.0f );
 cyMatrix4f g_mat_cube = cyMatrix4f( 1.0f );
 
@@ -70,7 +101,8 @@ bool bControlTheLight = false;
 float camera_angle_yaw = 0;
 float camera_angle_pitch = 0;
 
-cyVec3f g_lightPosInWorld = cyVec3f( 0.0f, 0.0f, 40.0f );
+cyVec3f g_light0PosInWorld = cyVec3f( 0.0f, 0.0f, 40.0f );
+cyVec3f g_light1PosInWorld = cyVec3f( 0.0f, 0.0f, 40.0f );
 cyVec3f g_cameraPosInWorld = cyVec3f( 40.0f, 100.0f, 40.0f );
 
 float g_moveSpeed = 50;
@@ -80,10 +112,13 @@ float g_rotate_pitch = 50;
 float rotation_yaw = 2.0f;
 float rotation_pitch = 1.5f;
 
-float light_angle_yaw = 0.0f;
-float light_angle_pitch = 0.0f;
+float g_light0_angle_yaw = 0.0f;
+float g_light0_angle_pitch = 0.0f;
 
-float g_dis_lightToTarget = 60.0f;
+float g_light1_angle_yaw = 0.0f;
+float g_light1_angle_pitch = 0.0f;
+
+float g_dis_lightToTarget = 100.0f;
 float g_dis_cameraToTarget = 60.0f;
 
 float g_width_screen = 640;
@@ -571,34 +606,52 @@ void InitializeDebugQuad( GLuint& i_VAO, GLuint& i_VBO, GLuint& i_EBO )
 
 void InitializeView()
 {
+	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
+	g_mat_teapot.SetTranslation( cyVec3f( 0, 20, 0 ) );
+	g_mat_sphere.SetTranslation( cyVec3f( 25, 40, 0 ) );
+	g_mat_cube.SetTranslation( cyVec3f( -20, 10, 0 ) );
+
 	g_target_camera = ( g_objMesh_teapot.GetBoundMax() + g_objMesh_teapot.GetBoundMin() ) / 2;
 	g_target_light = ( g_objMesh_teapot.GetBoundMax() + g_objMesh_teapot.GetBoundMin() ) / 2;
-	g_lightPosInWorld = g_target_light + cyVec3f( 0, 0, 100 );
-
 	g_dir_targetToCamera = ( g_cameraPosInWorld - g_target_camera ).GetNormalized();
-	g_dir_targetTolight = ( g_lightPosInWorld - g_target_light ).GetNormalized();
-
 	g_dis_cameraToTarget = ( g_cameraPosInWorld - g_target_camera ).Length();
-	g_dis_lightToTarget = ( g_lightPosInWorld - g_target_light ).Length();
+}
+
+void InitializeLight()
+{
+	g_sp_lightMesh.Bind();
+	cyVec3f lightPosForLamp( 1.0f, 1.0f, 1.0f );
+	glUniform3fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "lightPos" ), 1, &lightPosForLamp.elem[0] );
+
+	g_lightSources[0].idx = 0;
+	g_lightSources[0].lightPos = g_target_light + cyVec3f( 0, 0, g_dis_lightToTarget );
+	g_lightSources[0].lightToTargetDir = ( g_lightSources[0].lightPos - g_target_light ).GetNormalized();
+
+	g_lightSources[1].idx = 1;
+	g_lightSources[1].lightPos = g_target_light + cyVec3f( 0, 0, -g_dis_lightToTarget );
+	g_lightSources[1].lightToTargetDir = ( g_lightSources[1].lightPos - g_target_light ).GetNormalized();
 }
 
 #pragma endregion Initialization
-
 #pragma region
 void RenderScene( bool i_bDrawShdow = false )
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	g_sp_lightMesh.Bind();
 	// Draw the light source
 	{
-		g_sp_lightMesh.Bind();
-		glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_light.cell );
-		glBindVertexArray( VAO_light );
-		glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh.NF() );
+		glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_lightSources[0].mat_light.cell );
+		glBindVertexArray( VAO_light_1 );
+		glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh_0.NF() );
 		glBindVertexArray( 0 );
+
+		//glUniformMatrix4fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_light_1.cell );
+		//glBindVertexArray( VAO_light_2 );
+		//glDrawArrays( GL_TRIANGLES, 0, 3 * g_lightMesh_1.NF() );
+		//glBindVertexArray( 0 );
 	}
 
 	g_sp_shadowMesh.Bind();
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap" ), 0 );
 	if (i_bDrawShdow)
 	{
 		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 1 );
@@ -607,10 +660,20 @@ void RenderScene( bool i_bDrawShdow = false )
 	{
 		glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "receiveShadow" ), 0 );
 	}
-	g_tex_possion_distribution0.Bind( 1 );
-	g_tex_possion_distribution1.Bind( 2 );
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_distribution0" ), 1 );
-	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_distribution1" ), 2 );
+	glActiveTexture( GL_TEXTURE0 );
+	g_tex_shadowMap_0.BindTexture();
+	glActiveTexture( GL_TEXTURE1 );
+	g_tex_shadowMap_1.BindTexture();
+	glActiveTexture( GL_TEXTURE2 );
+	g_tex_possion_distribution0.Bind( 2 );
+	glActiveTexture( GL_TEXTURE3 );
+	g_tex_possion_distribution1.Bind( 3 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap0" ), 0 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_shadowMap1" ), 1 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_distribution0" ), 2 );
+	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "tex_distribution1" ), 3 );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_lightSpaceTransformation0" ), 1, GL_FALSE, g_lightSources[0].mat_lightSpaceTransformation.cell );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_lightSpaceTransformation1" ), 1, GL_FALSE, g_lightSources[1].mat_lightSpaceTransformation.cell );
 	CheckGLError();
 	// Draw the plane 
 	{
@@ -643,10 +706,11 @@ void RenderScene( bool i_bDrawShdow = false )
 	CheckGLError();
 }
 
-void GenerateShadowMap()
+void GenerateShadowMap( cyMatrix4f& i_mat_lightSpaceTrans )
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	g_sp_shadowPass.Bind();
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, i_mat_lightSpaceTrans.cell );
 	// Draw the teapot
 	{
 		glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_model" ), 1, GL_FALSE, g_mat_teapot.cell );
@@ -682,11 +746,18 @@ void Display()
 	glViewport( 0, 0, g_width_screen, g_height_screen );
 	// Render the scene to the shadow map from the light perspective
 	{
-		g_tex_renderDepth.Bind();
+		g_tex_shadowMap_0.Bind();
 		glCullFace( GL_FRONT );
-		GenerateShadowMap();
+		GenerateShadowMap( g_lightSources[0].mat_lightSpaceTransformation );
 		glCullFace( GL_BACK );
-		g_tex_renderDepth.Unbind();
+		g_tex_shadowMap_0.Unbind();
+
+		g_tex_shadowMap_1.Bind();
+		glCullFace( GL_FRONT );
+		GenerateShadowMap( g_lightSources[1].mat_lightSpaceTransformation );
+		glCullFace( GL_BACK );
+		g_tex_shadowMap_1.Unbind();
+
 	}
 	CheckGLError();
 	{
@@ -718,51 +789,50 @@ void UpdateCamera()
 	CheckGLError();
 }
 
-void UpdateLight()
+void UpdateLight( LightSource& io_lightSource )
 {
 	auto mat_light_rot = cyMatrix4f( 1.0f );
-	mat_light_rot.SetRotationXYZ( glm::radians( light_angle_pitch ), glm::radians( light_angle_yaw ), 0 );
-	auto dir_light = mat_light_rot * cyVec4f( g_dir_targetTolight, 0.0f );
-	g_lightPosInWorld = g_target_light + cyVec3f( dir_light ) * g_dis_lightToTarget;
+	mat_light_rot.SetRotationXYZ( glm::radians( io_lightSource.rotate_angle_pitch ), glm::radians( io_lightSource.rotate_angle_yaw ), 0 );
+	auto dir_light = mat_light_rot * cyVec4f( io_lightSource.lightToTargetDir, 0.0f );
+	io_lightSource.lightPos = g_target_light + cyVec3f( dir_light ) * io_lightSource.disToTarget;
 
 	auto mat_trans = cyMatrix4f( 1.0 );
-	mat_trans.SetTranslation( g_lightPosInWorld );
-	g_mat_light = mat_trans * mat_light_rot;
+	mat_trans.SetTranslation( io_lightSource.lightPos );
+	io_lightSource.mat_light = mat_trans * mat_light_rot;
 
 	auto worldUp = cyVec3f( 0, 1, 0 );
-	auto mat_lightSpace_view = GetLookAtMatrix( g_lightPosInWorld, g_target_light, worldUp );
+	auto mat_lightSpace_view = GetLookAtMatrix( io_lightSource.lightPos, g_target_light, worldUp );
 
 	auto mat_perspective = cyMatrix4f( 1.0f );
-	float near_plane = 1.5f;
+	io_lightSource.light_nearPlane = 1.5f;
 	float far_plane = 500.0f;
-	mat_perspective.SetPerspective( glm::radians( 45.0f ), width_shadow / height_shadow, near_plane, far_plane );
+	mat_perspective.SetPerspective( glm::radians( 45.0f ), width_shadow / height_shadow, io_lightSource.light_nearPlane, far_plane );
 
-	auto mat_lightSpace = mat_perspective * mat_lightSpace_view;
-
-	g_sp_shadowMap.Bind();
-	glUniform1f( glGetUniformLocation( g_sp_shadowMap.GetID(), "near_plane" ), near_plane );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMap.GetID(), "far_plane" ), far_plane );
+	io_lightSource.mat_lightSpaceTransformation = mat_perspective * mat_lightSpace_view;
 
 	g_sp_shadowMesh.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
-	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), "near_plane" ), near_plane );
-	glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), "lightPos" ), 1, &g_lightPosInWorld.elem[0] );
+	std::string mat_name = "mat_lightSpaceTransformation";
+	mat_name += std::to_string( io_lightSource.idx );
+	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), mat_name.c_str() ), 1, GL_FALSE, io_lightSource.mat_lightSpaceTransformation.cell );
 
-	g_sp_shadowPass.Bind();
-	glUniformMatrix4fv( glGetUniformLocation( g_sp_shadowPass.GetID(), "mat_lightSpaceTransformation" ), 1, GL_FALSE, mat_lightSpace.cell );
+	std::string str_def_prefix = "lightSources";
+	str_def_prefix += "[";
+	str_def_prefix += std::to_string( io_lightSource.idx );
+	str_def_prefix += "]";
 
-	g_sp_lightMesh.Bind();
-	cyVec3f lightSource( 1.0f, 1.0f, 1.0f );
-	glUniform3fv( glGetUniformLocation( g_sp_lightMesh.GetID(), "lightPos" ), 1, &lightSource.elem[0] );
+	std::string str_def = str_def_prefix + ".near_plane";
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), str_def.c_str() ), io_lightSource.light_nearPlane );
+	str_def = str_def_prefix + ".position";
+	glUniform3fv( glGetUniformLocation( g_sp_shadowMesh.GetID(), str_def.c_str() ), 1, &io_lightSource.lightPos.elem[0] );
+	str_def = str_def_prefix + ".size";
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), str_def.c_str() ), g_light_size );
+	str_def = str_def_prefix + ".bias";
+	glUniform1f( glGetUniformLocation( g_sp_shadowMesh.GetID(), str_def.c_str() ), io_lightSource.bias_shadowMap );
+	CheckGLError();
 }
 
 void UpdateModels()
 {
-	g_mat_plane.SetTranslation( cyVec3f( 0, 0, 0 ) );
-	g_mat_teapot.SetTranslation( cyVec3f( 0, 20, 0 ) );
-	g_mat_sphere.SetTranslation( cyVec3f( 25, 40, 0 ) );
-	g_mat_cube.SetTranslation( cyVec3f( -20, 10, 0 ) );
-
 	g_sp_shadowMap.Bind();
 	auto mat_quad_rot = cyMatrix4f( 1.0f );
 	mat_quad_rot.SetRotationXYZ( glm::radians( -camera_angle_pitch ), glm::radians( -camera_angle_yaw ), 0 );
@@ -772,22 +842,6 @@ void UpdateModels()
 
 void UpdateKeyboardIput()
 {
-	//	if (bKeyWPressed)
-	//	{
-	//		camera_distance_z -= camera_moveSpeed_perframe;
-	//	}
-	//	if (bKeyAPressed)
-	//	{
-	//		camera_distance_x += camera_moveSpeed_perframe;
-	//	}
-	//	if (bKeySPressed)
-	//	{
-	//		camera_distance_z += camera_moveSpeed_perframe;
-	//	}
-	//	if (bKeyDPressed)
-	//	{
-	//		camera_distance_x -= camera_moveSpeed_perframe;
-	//	}
 }
 
 void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
@@ -808,7 +862,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		{
 			if (bControlTheLight)
 			{
-				g_dis_lightToTarget -= moveDistance;
+				g_lightSources[0].disToTarget -= moveDistance;
 			}
 			else
 			{
@@ -820,7 +874,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		{
 			if (bControlTheLight)
 			{
-				g_dis_lightToTarget += moveDistance;
+				g_lightSources[0].disToTarget += moveDistance;
 			}
 			else
 			{
@@ -844,7 +898,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		{
 			if (bControlTheLight)
 			{
-				light_angle_yaw -= g_rotate_yaw * i_frameTime;
+				g_lightSources[0].rotate_angle_yaw -= g_rotate_yaw * i_frameTime;
 			}
 			else
 			{
@@ -855,7 +909,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		{
 			if (bControlTheLight)
 			{
-				light_angle_yaw += g_rotate_yaw * i_frameTime;
+				g_lightSources[0].rotate_angle_yaw += g_rotate_yaw * i_frameTime;
 			}
 			else
 			{
@@ -868,7 +922,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		{
 			if (bControlTheLight)
 			{
-				light_angle_pitch -= g_rotate_pitch * i_frameTime;
+				g_lightSources[0].rotate_angle_pitch -= g_rotate_pitch * i_frameTime;
 			}
 			else
 			{
@@ -879,7 +933,7 @@ void UpdateMouseInput( GLFWwindow* i_pWindow, float i_frameTime = 0.016 )
 		{
 			if (bControlTheLight)
 			{
-				light_angle_pitch += g_rotate_pitch * i_frameTime;
+				g_lightSources[0].rotate_angle_pitch += g_rotate_pitch * i_frameTime;
 			}
 			else
 			{
@@ -1073,14 +1127,17 @@ int main( int argc, char* argv[] )
 
 	CompileShaders( path_vertexShader_quad, path_fragmentShader_shadowMap, g_sp_shadowMap );
 	InitializeDebugQuad( VAO_quad, VBO_quad, EBO_quad );
-	InitializeDepthMap( g_tex_renderDepth );
 
-	InitializeMesh( "light.obj", g_lightMesh, VAO_light, VBO_light );
-	InitializeMaterial( g_lightMesh, g_sp_lightMesh );
+	InitializeMesh( "light.obj", g_lightMesh_0, VAO_light_1, VBO_light_1 );
+	InitializeMesh( "light.obj", g_lightMesh_1, VAO_light_2, VBO_light_2 );
+	InitializeMaterial( g_lightMesh_0, g_sp_lightMesh );
 
 	CreatePoissonDiscDistribution( g_tex_possion_distribution0, g_num_pcfFilteringSamples );
 	CreatePoissonDiscDistribution( g_tex_possion_distribution1, g_num_blockerSearchSamples );
 	CheckGLError();
+
+	InitializeDepthMap( g_tex_shadowMap_0 );
+	InitializeDepthMap( g_tex_shadowMap_1 );
 
 	g_sp_shadowMesh.Bind();
 	glUniform1i( glGetUniformLocation( g_sp_shadowMesh.GetID(), "numOfSample_pcfFiltering" ), g_num_pcfFilteringSamples );
@@ -1090,6 +1147,7 @@ int main( int argc, char* argv[] )
 	CheckGLError();
 
 	InitializeView();
+	InitializeLight();
 	CheckGLError();
 
 	while (!glfwWindowShouldClose( pWindow ))
@@ -1097,7 +1155,8 @@ int main( int argc, char* argv[] )
 		UpdateMouseInput( pWindow );
 
 		UpdateCamera();
-		UpdateLight();
+		UpdateLight( g_lightSources[0] );
+		//UpdateLight( g_light1PosInWorld, g_mat_light_1, g_mat_lightSpaceTrans_1, g_dir_targetTolight1, g_light1_angle_pitch, g_light1_angle_yaw, 1 );
 		UpdateModels();
 
 		Display();
@@ -1122,7 +1181,8 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &VBO_plane );
 		CheckGLError();
 
-		g_tex_renderDepth.Delete();
+		g_tex_shadowMap_0.Delete();
+		g_tex_shadowMap_1.Delete();
 		g_tex_possion_distribution0.Delete();
 		g_tex_possion_distribution1.Delete();
 
@@ -1135,8 +1195,11 @@ int main( int argc, char* argv[] )
 		glDeleteBuffers( 1, &VBO_quad );
 		glDeleteBuffers( 1, &EBO_quad );
 
-		glDeleteVertexArrays( 1, &VAO_light );
-		glDeleteBuffers( 1, &VBO_light );
+		glDeleteVertexArrays( 1, &VAO_light_1 );
+		glDeleteBuffers( 1, &VBO_light_1 );
+
+		glDeleteVertexArrays( 1, &VAO_light_2 );
+		glDeleteBuffers( 1, &VBO_light_2 );
 
 		CheckGLError();
 	}
