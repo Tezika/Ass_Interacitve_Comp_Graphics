@@ -1127,12 +1127,6 @@ void InitializeTweakAntBar()
 
 int main( int argc, char* argv[] )
 {
-	if (argc < 2)
-	{
-		fprintf( stderr, "Please enter the .obj file name as the argument.\n" );
-		system( "pause" );
-		return -1;
-	}
 	GLFWwindow* pWindow;
 	/* Initialize the library */
 	if (!glfwInit())
@@ -1176,7 +1170,7 @@ int main( int argc, char* argv[] )
 	CompileShaders( path_vertexShader_shadow, path_fragmentShader_shadow, g_sp_shadowMesh );
 	CompileShaders( path_vertexShader_shadowPass, path_fragmentShader_shadowPass, g_sp_shadowPass );
 
-	InitializeMesh( argv[1], g_objMesh_teapot, VAO_teapot, VBO_teapot );
+	InitializeMesh( "teapot.obj", g_objMesh_teapot, VAO_teapot, VBO_teapot );
 	InitializeMesh( "plane.obj", g_planeMesh, VAO_plane, VBO_plane );
 	InitializeMesh( "sphere.obj", g_objMesh_sphere, VAO_sphere, VBO_sphere );
 	InitializeMesh( "cube.obj", g_objMesh_cube, VAO_cube, VBO_cube );
